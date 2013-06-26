@@ -313,6 +313,18 @@
     <Compile Include="src\ASF\common\boards\user_board\init.c">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\uart.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\uart_xmega.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ui.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\ui.h">
+      <SubType>compile</SubType>
+    </Compile>
     <None Include="src\ASF\common\services\delay\delay.h">
       <SubType>compile</SubType>
     </None>

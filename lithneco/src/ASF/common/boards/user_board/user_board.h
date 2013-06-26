@@ -46,7 +46,5 @@
 #define COMM1_M2C	IOPORT_CREATE_PIN(PORTE, 2)
 #define COMM1_C2M	IOPORT_CREATE_PIN(PORTE, 3)
 
-void lithne_board_init(void);
-
 #endif // USER_BOARD_H
 
