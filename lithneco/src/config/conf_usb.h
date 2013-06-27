@@ -3,7 +3,7 @@
  *
  * \brief USB configuration file for CDC application
  *
- * Copyright (c) 2009-2013 Atmel Corporation. All rights reserved.
+ * Copyright (c) 2012-2013 Atmel Corporation. All rights reserved.
  *
  * \asf_license_start
  *
@@ -47,8 +47,6 @@
 #include "compiler.h"
 #include "board.h"
 
-#warning You must refill the following definitions with a correct values
-
 /**
  * USB Device Configuration
  * @{
@@ -56,7 +54,7 @@
 
 //! Device definition (mandatory)
 #define  USB_DEVICE_VENDOR_ID             USB_VID_ATMEL
-#define  USB_DEVICE_PRODUCT_ID            USB_PID_ATMEL_ASF_CDC
+#define  USB_DEVICE_PRODUCT_ID            USB_PID_ATMEL_ASF_SEVEN_CDC
 #define  USB_DEVICE_MAJOR_VERSION         1
 #define  USB_DEVICE_MINOR_VERSION         0
 #define  USB_DEVICE_POWER                 100 // Consumption on Vbus line (mA)
@@ -68,7 +66,7 @@
 
 //! USB Device string definitions (Optional)
 #define  USB_DEVICE_MANUFACTURE_NAME      "ATMEL ASF"
-#define  USB_DEVICE_PRODUCT_NAME          "CDC Virtual Com"
+#define  USB_DEVICE_PRODUCT_NAME          "3x CDC Virtual Com"
 // #define  USB_DEVICE_SERIAL_NAME           "12...EF"
 
 
@@ -79,6 +77,8 @@
  */
 //! To authorize the High speed
 #if (UC3A3||UC3A4)
+#define  USB_DEVICE_HS_SUPPORT
+#elif (SAM3XA)
 #define  USB_DEVICE_HS_SUPPORT
 #endif
 //@}
@@ -102,7 +102,6 @@
 // #define  UDC_GET_EXTRA_STRING()
 //@}
 
-
 //@}
 
 
@@ -115,39 +114,24 @@
  * @{
  */
 
-//! Number of communication port used (1 to 3)
-#define  UDI_CDC_PORT_NB 1
+//! Define 3 USB communication ports
+#define  UDI_CDC_PORT_NB 3
 
 //! Interface callback definition
 #define  UDI_CDC_ENABLE_EXT(port)         main_cdc_enable(port)
 #define  UDI_CDC_DISABLE_EXT(port)        main_cdc_disable(port)
-#define  UDI_CDC_RX_NOTIFY(port)          uart_rx_notify(port)
+#define  UDI_CDC_RX_NOTIFY(port)          ui_com_rx_notify(port)
 #define  UDI_CDC_TX_EMPTY_NOTIFY(port)
-#define  UDI_CDC_SET_CODING_EXT(port,cfg) uart_config(port,cfg)
+#define  UDI_CDC_SET_CODING_EXT(port,cfg)
 #define  UDI_CDC_SET_DTR_EXT(port,set)    main_cdc_set_dtr(port,set)
 #define  UDI_CDC_SET_RTS_EXT(port,set)
-/*
- * #define UDI_CDC_ENABLE_EXT(port) my_callback_cdc_enable()
- * extern bool my_callback_cdc_enable(void);
- * #define UDI_CDC_DISABLE_EXT(port) my_callback_cdc_disable()
- * extern void my_callback_cdc_disable(void);
- * #define  UDI_CDC_RX_NOTIFY(port) my_callback_rx_notify(port)
- * extern void my_callback_rx_notify(uint8_t port);
- * #define  UDI_CDC_TX_EMPTY_NOTIFY(port) my_callback_tx_empty_notify(port)
- * extern void my_callback_tx_empty_notify(uint8_t port);
- * #define  UDI_CDC_SET_CODING_EXT(port,cfg) my_callback_config(port,cfg)
- * extern void my_callback_config(uint8_t port, usb_cdc_line_coding_t * cfg); 
- * #define  UDI_CDC_SET_DTR_EXT(port,set) my_callback_cdc_set_dtr(port,set)
- * extern void my_callback_cdc_set_dtr(uint8_t port, bool b_enable);
- * #define  UDI_CDC_SET_RTS_EXT(port,set) my_callback_cdc_set_rts(port,set)
- * extern void my_callback_cdc_set_rts(uint8_t port, bool b_enable); 
- */
 
 //! Define it when the transfer CDC Device to Host is a low rate (<512000 bauds)
 //! to reduce CDC buffers size
 #define  UDI_CDC_LOW_RATE
 
 //! Default configuration of communication port
+//! Note: Ignored by this device because no true UART is used
 #define  UDI_CDC_DEFAULT_RATE             115200
 #define  UDI_CDC_DEFAULT_STOPBITS         CDC_STOP_BITS_1
 #define  UDI_CDC_DEFAULT_PARITY           CDC_PAR_NONE
@@ -164,7 +148,7 @@
 
 //! The includes of classes and other headers must be done at the end of this file to avoid compile error
 #include "udi_cdc_conf.h"
-#include "uart.h"
 #include "main.h"
+#include "ui.h"
 
 #endif // _CONF_USB_H_

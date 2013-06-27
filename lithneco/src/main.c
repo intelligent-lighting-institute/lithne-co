@@ -1,53 +1,64 @@
 /**
  * \file
  *
- * \brief Empty user application template
+ * \brief CDC Application Main functions
+ *
+ * Copyright (c) 2012 Atmel Corporation. All rights reserved.
+ *
+ * \asf_license_start
+ *
+ * \page License
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * 3. The name of Atmel may not be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * 4. This software may only be redistributed and used in connection with an
+ *    Atmel microcontroller product.
+ *
+ * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
+ * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ * \asf_license_stop
  *
  */
 
-/**
- * \mainpage User Application template doxygen documentation
- *
- * \par Empty user application template
- *
- * Bare minimum empty user application template
- *
- * \par Content
- *
- * -# Include the ASF header files (through asf.h)
- * -# Minimal main function that starts with a call to board_init()
- * -# "Insert application code here" comment
- *
- */
-
-/*
- * Include header files for all drivers that have been imported from
- * Atmel Software Framework (ASF).
- */
 #include <asf.h>
-#include <util/delay.h>
-#include "main.h"
 #include "conf_usb.h"
 #include "ui.h"
-#include "uart.h"
-static volatile bool main_b_cdc_enable = false;
 
+static volatile bool main_b_cdc_enable = false;
+static volatile uint8_t main_port_open;
 
 /*! \brief Main function. Execution starts here.
  */
 int main(void)
 {
-	/*while(1){
-		ioport_toggle_pin(C_DEBUGLED);
-		delay_ms(500);
-	}*/
 	irq_initialize_vectors();
 	cpu_irq_enable();
 
 	// Initialize the sleep manager
 	sleepmgr_init();
 
-	sysclk_init(); // Initialize system clock as defined in config/conf_clock.h
+	sysclk_init();
 	board_init();
 	ui_init();
 	ui_powerdown();
@@ -59,6 +70,28 @@ int main(void)
 	// because the USB management is done by interrupt
 	while (true) {
 		sleepmgr_enter_sleep();
+		if (main_b_cdc_enable) {
+			// Here CPU wakeup at each SOF (1ms)
+			for (uint8_t port = 0; port < UDI_CDC_PORT_NB; port++) {
+				if (!(main_port_open & (1 << port))) {
+					// Port not open
+					continue;
+				}
+				if (!udi_cdc_multi_is_rx_ready(port)) {
+					// No data received
+					continue;
+				}
+				int value = udi_cdc_multi_getc(port);
+				if (value != 'p') {
+					// Ignore this value
+					continue;
+				}
+				udi_cdc_multi_write_buf(port, "PORT", sizeof("PORT")-1);
+				udi_cdc_multi_putc(port, port+'0');
+				udi_cdc_multi_putc(port, '\n');
+				udi_cdc_multi_putc(port, '\r');
+			}
+		}
 	}
 }
 
@@ -82,25 +115,24 @@ void main_sof_action(void)
 bool main_cdc_enable(uint8_t port)
 {
 	main_b_cdc_enable = true;
-	// Open communication
-	uart_open(port);
+	main_port_open = 0;
 	return true;
 }
 
 void main_cdc_disable(uint8_t port)
 {
 	main_b_cdc_enable = false;
-	// Close communication
-	uart_close(port);
 }
 
 void main_cdc_set_dtr(uint8_t port, bool b_enable)
 {
 	if (b_enable) {
 		// Host terminal has open COM
+		main_port_open |= 1 << port;
 		ui_com_open(port);
 	}else{
 		// Host terminal has close COM
+		main_port_open &= ~(1 << port);
 		ui_com_close(port);
 	}
 }
@@ -126,24 +158,24 @@ void main_cdc_set_dtr(uint8_t port, bool b_enable)
  * simplifies application development on the host side.
  *
  * \section startup Startup
- * The example is a bridge between a USART from the main MCU
- * and the USB CDC interface.
+ * The example is a implementation of 7 USB CDC interface.
  *
  * In this example, we will use a PC as a USB host:
- * it connects to the USB and to the USART board connector.
- * - Connect the USART peripheral to the USART interface of the board.
  * - Connect the application to a USB host (e.g. a PC)
  *   with a mini-B (embedded side) to A (PC host side) cable.
- * The application will behave as a virtual COM (see Windows Device Manager).
- * - Open a HyperTerminal on both COM ports (RS232 and Virtual COM)
- * - Select the same configuration for both COM ports up to 115200 baud.
- * - Type a character in one HyperTerminal and it will echo in the other.
+ * The application will behave as 7 virtual COM (see Windows Device Manager).
+ * - Open a HyperTerminal on a virtual COM port
+ * - Ignore virtual COM port configuration because this does not manage a
+ *   true UART
+ * - Type the character 'p' in the HyperTerminal and it will display the port
+ *   number"PORTX" corresponding at virtual COM port opened.
  *
  * \note
  * On the first connection of the board on the PC,
  * the operating system will detect a new peripheral:
  * - This will open a new hardware installation window.
- * - Choose "No, not this time" to connect to Windows Update for this installation
+ * - Choose "No, not this time" to connect to Windows Update for this
+ *   installation
  * - click "Next"
  * - When requested by Windows for a driver INF file, select the
  *   atmel_devices_cdc.inf file in the directory indicated in the Atmel Studio
@@ -167,12 +199,6 @@ void main_cdc_set_dtr(uint8_t port, bool b_enable)
  *      <br>initializes interrupt
  *      <br>manages UI
  *      <br>
- *    - uart_xmega.c,
- *      <br>implementation of RS232 bridge for XMEGA parts
- *    - uart_uc3.c,
- *      <br>implementation of RS232 bridge for UC3 parts
- *    - uart_sam.c,
- *      <br>implementation of RS232 bridge for SAM parts
  *    - specific implementation for each target "./examples/product_board/":
  *       - conf_foo.h   configuration of each module
  *       - ui.c        implement of user's interface (leds,buttons...)

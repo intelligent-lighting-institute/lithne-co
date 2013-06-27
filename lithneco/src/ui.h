@@ -3,7 +3,7 @@
  *
  * \brief Common User Interface for CDC application
  *
- * Copyright (c) 2009-2012 Atmel Corporation. All rights reserved.
+ * Copyright (c) 2012 Atmel Corporation. All rights reserved.
  *
  * \asf_license_start
  *
@@ -64,27 +64,7 @@ void ui_com_close(uint8_t port);
 
 /*! \brief Called when a data is received on CDC
  */
-void ui_com_rx_start(void);
-
-/*! \brief Called when a data is received on port com
- */
-void ui_com_tx_start(void);
-
-/*! \brief Called when all data pending are sent on port com
- */
-void ui_com_rx_stop(void);
-
-/*! \brief Called when all data pending are sent on CDC
- */
-void ui_com_tx_stop(void);
-
-/*! \brief Called when a communication error occur
- */
-void ui_com_error(void);
-
-/*! \brief Called when a overflow occur
- */
-void ui_com_overflow(void);
+void ui_com_rx_notify(uint8_t port);
 
 /*! \brief This process is called each 1ms
  * It is called only if the USB interface is enabled.

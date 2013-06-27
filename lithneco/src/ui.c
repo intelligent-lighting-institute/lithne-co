@@ -69,65 +69,26 @@ void ui_com_close(uint8_t port)
 
 }
 
-void ui_com_rx_start(void)
-{
-
-}
-
-void ui_com_rx_stop(void)
-{
-
-}
-
-void ui_com_tx_start(void)
-{
-
-}
-
-void ui_com_tx_stop(void)
-{
-
-}
-
-void ui_com_error(void)
-{
-
-}
-
-void ui_com_overflow(void)
-{
-
+void ui_com_rx_notify(uint8_t port){
+	
 }
 
 void ui_process(uint16_t framenumber)
 {
 	if (0 == framenumber) {
-		;
+		ioport_set_pin_low(C_DEBUGLED);
 	}
 	if (1000 == framenumber) {
-		;
+		ioport_set_pin_high(C_DEBUGLED);
 	}
 }
 
 /**
  * \defgroup UI User Interface
  *
- * Human interface on STK600:
- * - Led 0 is on when USB line is in IDLE mode, and off in SUSPEND mode
- * - Led 1 blinks when USB host has checked and enabled CDC interface
- * - Led 2 is on when CDC port is open
- * - Led 4 is on during data transfer from CDC to UART
- * - Led 5 is on during data transfer from UART to CDC
- * - Led 6 signals an frame error on UART
- * - Led 7 signals an overflow
- *
- * Setup for STK600:
- * - LEDS connector is connected to PORTA
- * - SWITCHES are connected to PORTB
- * - PC2 (RXC0) is connected to RS232 SPARE RXD
- * - PC3 (TXC0) is connected to RS232 SPARE TXD
- * - Warning! The AREF0 jumper must be removed
- * because AREF0 connected on PORTA0 overrides led 0.
- * - Warning! The AREF1 jumper must be removed
- * because AREF1 connected on PORTB0 overrides switch 0.
+ * Human interface on XMEGA-B1 Xplained:
+ * - The RED led close to USB connector is on
+ *   when USB line is in IDLE mode, and off in SUSPEND mode
+ * - Led 0 blinks when USB host has checked and enabled CDC interfaces
+ * - Led 1, 2, 3 is on during data transfer according port number
  */
