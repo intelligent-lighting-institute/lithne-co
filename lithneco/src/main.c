@@ -44,9 +44,10 @@
 #include <asf.h>
 #include "conf_usb.h"
 #include "ui.h"
+#include "print.h"
 
-static volatile bool main_b_cdc_enable = false;
-static volatile uint8_t main_port_open;
+volatile bool main_b_cdc_enable = false;
+volatile uint8_t main_port_open;
 
 /*! \brief Main function. Execution starts here.
  */

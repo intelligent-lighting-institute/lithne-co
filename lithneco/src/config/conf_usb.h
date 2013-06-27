@@ -114,8 +114,12 @@
  * @{
  */
 
-//! Define 3 USB communication ports
-#define  UDI_CDC_PORT_NB 3
+//! Define 4 USB communication ports
+//! 0 = COMM0
+//! 1 = COMM1
+//! 2 = XBEE direct
+//! 3 = co-processor debug
+#define  UDI_CDC_PORT_NB 4
 
 //! Interface callback definition
 #define  UDI_CDC_ENABLE_EXT(port)         main_cdc_enable(port)

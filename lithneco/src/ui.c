@@ -43,6 +43,7 @@
 
 #include <asf.h>
 #include "ui.h"
+#include "print.h"
 
 void ui_init(void)
 {
@@ -61,7 +62,7 @@ void ui_wakeup(void)
 
 void ui_com_open(uint8_t port)
 {
-
+	debugMessage("PORT %d was opened!", port);	
 }
 
 void ui_com_close(uint8_t port)
