@@ -1,44 +1,12 @@
 /**
  * \file
  *
- * \brief UART functions for AVR Xmega
+ * \brief UART functions
  *
- * Copyright (c) 2011 - 2012 Atmel Corporation. All rights reserved.
+ * Copyright (c) 2009-2012 Atmel Corporation. All rights reserved.
  *
- * \asf_license_start
- *
- * \page License
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. The name of Atmel may not be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * 4. This software may only be redistributed and used in connection with an
- *    Atmel microcontroller product.
- *
- * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
- * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
  *
  * \asf_license_stop
- *
  */
 
 #include <asf.h>
@@ -47,79 +15,31 @@
 #include "main.h"
 #include "ui.h"
 
-void uart_config(usartSpecification usartSpec, usb_cdc_line_coding_t * cfg)
+
+void uart_start_interrupt(USART_t * usartPtr)
 {
-	uint8_t reg_ctrlc;
-	uint16_t bsel;
-
-	reg_ctrlc = USART_CMODE_ASYNCHRONOUS_gc;
-
-	switch (cfg->bCharFormat) {
-	case CDC_STOP_BITS_2:
-		reg_ctrlc |= USART_SBMODE_bm;
-		break;
-	case CDC_STOP_BITS_1:
-	default:
-		// Default stop bit = 1 stop bit
-		break;
-	}
-
-	switch (cfg->bParityType) {
-	case CDC_PAR_EVEN:
-		reg_ctrlc |= USART_PMODE_EVEN_gc;
-		break;
-	case CDC_PAR_ODD:
-		reg_ctrlc |= USART_PMODE_ODD_gc;
-		break;
-	default:
-	case CDC_PAR_NONE:
-		reg_ctrlc |= USART_PMODE_DISABLED_gc;
-		break;
-	}
-
-	switch (cfg->bDataBits) {
-	case 5:
-		reg_ctrlc |= USART_CHSIZE_5BIT_gc;
-		break;
-	case 6:
-		reg_ctrlc |= USART_CHSIZE_6BIT_gc;
-		break;
-	case 7:
-		reg_ctrlc |= USART_CHSIZE_7BIT_gc;
-		break;
-	default:
-	case 8:
-		reg_ctrlc |= USART_CHSIZE_8BIT_gc;
-		break;
-	case 9:
-		reg_ctrlc |= USART_CHSIZE_9BIT_gc;
-		break;
-	}
-
-	sysclk_enable_module(usartSpec.sysClkPort, usartSpec.sysClk);
-	// Set configuration
-	usartSpec.usartPtr->CTRLC = reg_ctrlc;
-	// Update baudrate
-	bsel = (uint16_t) (((((((uint32_t) sysclk_get_cpu_hz()) << 1) / ((uint32_t)
-		le32_to_cpu(cfg->dwDTERate) * 8)) + 1) >> 1) - 1);
-	usartSpec.usartPtr->BAUDCTRLA = bsel & 0xFF;
-	usartSpec.usartPtr->BAUDCTRLB = bsel >> 8;
-}
-
-void uart_open(usartSpecification usartSpec)
-{
-	sysclk_enable_module(usartSpec.sysClkPort, usartSpec.sysClk);
-	// Open UART communication
-	usartSpec.portPtr->DIRSET = usartSpec.pinTx; // TX as output.
-	usartSpec.portPtr->DIRCLR = usartSpec.pinRx; // RX as input.
-
-	// Enable both RX and TX
-	usartSpec.usartPtr->CTRLB = USART_RXEN_bm | USART_TXEN_bm | USART_CLK2X_bm;
 	// Enable interrupt with priority higher than USB
-	usartSpec.usartPtr->CTRLA = (register8_t) USART_RXCINTLVL_HI_gc | (register8_t)
-			USART_DREINTLVL_OFF_gc;
+	usartPtr->CTRLA = (register8_t) USART_RXCINTLVL_HI_gc | (register8_t) USART_DREINTLVL_OFF_gc;	
 }
 
+void uart_stop_interrupt(USART_t * usartPtr)
+{
+	// Enable interrupt with priority higher than USB
+	usartPtr->CTRLA = 0x00;
+}
+
+void uart_open(USART_t * usartPtr){
+	const usart_serial_options_t usart_options = {
+		.baudrate = USART_SERIAL_BAUDRATE,
+		.charlength = USART_SERIAL_CHAR_LENGTH,
+		.paritytype = USART_SERIAL_PARITY,
+		.stopbits = USART_SERIAL_STOP_BIT
+	};
+	
+	usart_serial_init(usartPtr, &usart_options);
+}
+
+/*
 void uart_close(usartSpecification usartSpec)
 {
 	sysclk_disable_module(usartSpec.sysClkPort, usartSpec.sysClk);
@@ -129,6 +49,7 @@ void uart_close(usartSpecification usartSpec)
 	usartSpec.usartPtr->CTRLB = 0;
 }
 
+
 void uart_rx_notify(usartSpecification usartSpec)
 {
 	// If UART is open
@@ -137,7 +58,7 @@ void uart_rx_notify(usartSpecification usartSpec)
 		usartSpec.usartPtr->CTRLA = (register8_t) USART_RXCINTLVL_HI_gc | (register8_t)
 		USART_DREINTLVL_HI_gc;
 	}
-}
+}*/
 
 // Interrupt vectors for COMM0
 ISR(USART_COMM0_RX_Vect)

@@ -68,17 +68,19 @@ int main(void)
 	// Start USB stack to authorize VBus monitoring
 	udc_start();
 	
-	uart_open(COMM0_SPEC);
-		
-	uart_open(COMM1_SPEC);
-		
-	uart_open(XBEE_SPEC);
+	uart_open(&USART_COMM0);
+	uart_open(&USART_COMM1);
+	uart_open(&USART_XBEE);
 	
+	uart_start_interrupt(&USART_COMM0);
+	uart_start_interrupt(&USART_COMM1);
+	uart_start_interrupt(&USART_XBEE);
+		
 	// The main loop manages only the power mode
 	// because the USB management is done by interrupt
 	while (true) {
 		sleepmgr_enter_sleep();
-		if (main_b_cdc_enable) {
+		/*if (main_b_cdc_enable) {
 			// Here CPU wakeup at each SOF (1ms)
 			for (uint8_t port = 0; port < UDI_CDC_PORT_NB; port++) {
 				if (!(main_port_open & (1 << port))) {
@@ -99,7 +101,7 @@ int main(void)
 				udi_cdc_multi_putc(port, '\n');
 				udi_cdc_multi_putc(port, '\r');
 			}
-		}
+		}*/
 	}
 }
 
@@ -123,21 +125,7 @@ void main_sof_action(void)
 bool main_cdc_enable(uint8_t port)
 {
 	main_b_cdc_enable = true;
-	main_port_open = 0;
-	switch(port){
-		case 0:
-		uart_open(COMM0_SPEC);
-		break;
-		case 1:
-		uart_open(COMM1_SPEC);
-		break;
-		case 2:
-		uart_open(XBEE_SPEC);
-		break;
-		case 3:
-		// Debug port, has no USART attached, just USB.
-		break;
-	}	
+	main_port_open = 0;	
 	return true;
 }
 
@@ -160,20 +148,7 @@ void main_cdc_set_dtr(uint8_t port, bool b_enable)
 }
 
 void main_cdc_config(uint8_t port, usb_cdc_line_coding_t * cfg){
-	switch(port){
-		case 0:
-		uart_config(COMM0_SPEC, cfg);
-		break;
-		case 1:
-		uart_config(COMM1_SPEC, cfg);
-		break;
-		case 2:
-		uart_config(XBEE_SPEC, cfg);
-		break;
-		case 3:
-		// Debug port, has no USART attached, just USB.
-		break;
-	}	
+
 }
 
 /**
