@@ -78,5 +78,6 @@ void main_resume_action(void);
  */
 void main_cdc_set_dtr(uint8_t port, bool b_enable);
 
+void main_cdc_config(uint8_t port, usb_cdc_line_coding_t * cfg);
 
 #endif // _MAIN_H_

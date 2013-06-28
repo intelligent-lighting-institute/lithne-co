@@ -45,6 +45,7 @@
 #include "conf_usb.h"
 #include "ui.h"
 #include "print.h"
+#include "uart.h"
 
 volatile bool main_b_cdc_enable = false;
 volatile uint8_t main_port_open;
@@ -66,7 +67,13 @@ int main(void)
 
 	// Start USB stack to authorize VBus monitoring
 	udc_start();
-
+	
+	uart_open(COMM0_SPEC);
+		
+	uart_open(COMM1_SPEC);
+		
+	uart_open(XBEE_SPEC);
+	
 	// The main loop manages only the power mode
 	// because the USB management is done by interrupt
 	while (true) {
@@ -117,6 +124,20 @@ bool main_cdc_enable(uint8_t port)
 {
 	main_b_cdc_enable = true;
 	main_port_open = 0;
+	switch(port){
+		case 0:
+		uart_open(COMM0_SPEC);
+		break;
+		case 1:
+		uart_open(COMM1_SPEC);
+		break;
+		case 2:
+		uart_open(XBEE_SPEC);
+		break;
+		case 3:
+		// Debug port, has no USART attached, just USB.
+		break;
+	}	
 	return true;
 }
 
@@ -136,6 +157,23 @@ void main_cdc_set_dtr(uint8_t port, bool b_enable)
 		main_port_open &= ~(1 << port);
 		ui_com_close(port);
 	}
+}
+
+void main_cdc_config(uint8_t port, usb_cdc_line_coding_t * cfg){
+	switch(port){
+		case 0:
+		uart_config(COMM0_SPEC, cfg);
+		break;
+		case 1:
+		uart_config(COMM1_SPEC, cfg);
+		break;
+		case 2:
+		uart_config(XBEE_SPEC, cfg);
+		break;
+		case 3:
+		// Debug port, has no USART attached, just USB.
+		break;
+	}	
 }
 
 /**

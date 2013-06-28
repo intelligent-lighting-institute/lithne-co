@@ -126,7 +126,7 @@
 #define  UDI_CDC_DISABLE_EXT(port)        main_cdc_disable(port)
 #define  UDI_CDC_RX_NOTIFY(port)          ui_com_rx_notify(port)
 #define  UDI_CDC_TX_EMPTY_NOTIFY(port)
-#define  UDI_CDC_SET_CODING_EXT(port,cfg)
+#define  UDI_CDC_SET_CODING_EXT(port,cfg) main_cdc_config(port, cfg)
 #define  UDI_CDC_SET_DTR_EXT(port,set)    main_cdc_set_dtr(port,set)
 #define  UDI_CDC_SET_RTS_EXT(port,set)
 

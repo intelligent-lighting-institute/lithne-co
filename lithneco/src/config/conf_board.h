@@ -32,7 +32,7 @@
 #define  USART_XBEE_SYSCLK         SYSCLK_USART0
 #define  USART_XBEE_PORT           PORTC
 #define  USART_XBEE_PORT_PIN_TX    (1<<7)  // PC7 (TXC1)
-#define  USART_XBEE_PORT_PIN_RX    (1<<6)  // PC2 (RXC1)
+#define  USART_XBEE_PORT_PIN_RX    (1<<6)  // PC6 (RXC1)
 #define  USART_XBEE_PORT_SYSCLK    SYSCLK_PORT_C
 
 #define BOARD USER_BOARD
