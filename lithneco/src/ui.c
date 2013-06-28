@@ -62,12 +62,42 @@ void ui_wakeup(void)
 
 void ui_com_open(uint8_t port)
 {
-	debugMessage("PORT %d was opened!", port);	
+	debugMessage("Host connected to PORT %d", port);	
 }
 
 void ui_com_close(uint8_t port)
 {
+	debugMessage("Host disconnected from PORT %d", port);	
+}
 
+void ui_com_rx_start(void)
+{
+
+}
+
+void ui_com_rx_stop(void)
+{
+
+}
+
+void ui_com_tx_start(void)
+{
+
+}
+
+void ui_com_tx_stop(void)
+{
+
+}
+
+void ui_com_error(void)
+{
+
+}
+
+void ui_com_overflow(void)
+{
+	
 }
 
 void ui_com_rx_notify(uint8_t port){

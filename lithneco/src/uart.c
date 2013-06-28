@@ -47,7 +47,7 @@
 #include "main.h"
 #include "ui.h"
 
-void uart_config(uint8_t port, usb_cdc_line_coding_t * cfg)
+void uart_config(usartSpecification usartSpec, usb_cdc_line_coding_t * cfg)
 {
 	uint8_t reg_ctrlc;
 	uint16_t bsel;
@@ -96,50 +96,50 @@ void uart_config(uint8_t port, usb_cdc_line_coding_t * cfg)
 		break;
 	}
 
-	sysclk_enable_module(USART_PORT_SYSCLK, USART_SYSCLK);
+	sysclk_enable_module(usartSpec.sysClkPort, usartSpec.sysClk);
 	// Set configuration
-	USART.CTRLC = reg_ctrlc;
+	usartSpec.usartPtr->CTRLC = reg_ctrlc;
 	// Update baudrate
 	bsel = (uint16_t) (((((((uint32_t) sysclk_get_cpu_hz()) << 1) / ((uint32_t)
 		le32_to_cpu(cfg->dwDTERate) * 8)) + 1) >> 1) - 1);
-	USART.BAUDCTRLA = bsel & 0xFF;
-	USART.BAUDCTRLB = bsel >> 8;
+	usartSpec.usartPtr->BAUDCTRLA = bsel & 0xFF;
+	usartSpec.usartPtr->BAUDCTRLB = bsel >> 8;
 }
 
-void uart_open(uint8_t port)
+void uart_open(usartSpecification usartSpec)
 {
-	sysclk_enable_module(USART_PORT_SYSCLK, USART_SYSCLK);
+	sysclk_enable_module(usartSpec.sysClkPort, usartSpec.sysClk);
 	// Open UART communication
-	USART_PORT.DIRSET = USART_PORT_PIN_TX; // TX as output.
-	USART_PORT.DIRCLR = USART_PORT_PIN_RX; // RX as input.
+	usartSpec.portPtr->DIRSET = usartSpec.pinTx; // TX as output.
+	usartSpec.portPtr->DIRCLR = usartSpec.pinRx; // RX as input.
 
 	// Enable both RX and TX
-	USART.CTRLB = USART_RXEN_bm | USART_TXEN_bm | USART_CLK2X_bm;
+	usartSpec.usartPtr->CTRLB = USART_RXEN_bm | USART_TXEN_bm | USART_CLK2X_bm;
 	// Enable interrupt with priority higher than USB
-	USART.CTRLA = (register8_t) USART_RXCINTLVL_HI_gc | (register8_t)
+	usartSpec.usartPtr->CTRLA = (register8_t) USART_RXCINTLVL_HI_gc | (register8_t)
 			USART_DREINTLVL_OFF_gc;
 }
 
-void uart_close(uint8_t port)
+void uart_close(usartSpecification usartSpec)
 {
-	sysclk_disable_module(USART_PORT_SYSCLK, USART_SYSCLK);
+	sysclk_disable_module(usartSpec.sysClkPort, usartSpec.sysClk);
 	// Disable interrupts
-	USART.CTRLA = 0;
+	usartSpec.usartPtr->CTRLA = 0;
 	// Close RS232 communication
-	USART.CTRLB = 0;
+	usartSpec.usartPtr->CTRLB = 0;
 }
 
-void uart_rx_notify(uint8_t port)
+void uart_rx_notify(usartSpecification usartSpec)
 {
 	// If UART is open
-	if (USART.CTRLA!=0) {
+	if (usartSpec.usartPtr->CTRLA != 0) {
 		// Enable UART TX interrupt to send values
-		USART.CTRLA = (register8_t) USART_RXCINTLVL_HI_gc | (register8_t)
+		usartSpec.usartPtr->CTRLA = (register8_t) USART_RXCINTLVL_HI_gc | (register8_t)
 		USART_DREINTLVL_HI_gc;
 	}
 }
 
-
+/*
 ISR(USART_RX_Vect)
 {
 	uint8_t value;
@@ -178,3 +178,4 @@ ISR(USART_DRE_Vect)
 		ui_com_rx_stop();
 	}
 }
+*/

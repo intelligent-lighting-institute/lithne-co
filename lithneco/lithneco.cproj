@@ -313,12 +313,12 @@
     <Compile Include="src\ASF\common\boards\user_board\init.c">
       <SubType>compile</SubType>
     </Compile>
-    <None Include="src\uart.h">
+    <Compile Include="src\uart.h">
       <SubType>compile</SubType>
-    </None>
-    <None Include="src\uart_xmega.c">
+    </Compile>
+    <Compile Include="src\uart.c">
       <SubType>compile</SubType>
-    </None>
+    </Compile>
     <Compile Include="src\print.c">
       <SubType>compile</SubType>
     </Compile>

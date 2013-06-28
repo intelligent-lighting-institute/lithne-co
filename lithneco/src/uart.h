@@ -44,23 +44,59 @@
 #ifndef _UART_H_
 #define _UART_H_
 
+typedef struct{
+	USART_t *const usartPtr;
+	uint8_t sysClk;
+	PORT_t *const portPtr;
+	uint8_t pinRx;
+	uint8_t pinTx;
+	enum sysclk_port_id sysClkPort;
+} usartSpecification;
+
+static const usartSpecification COMM0_SPEC = {
+	&USART_COMM0,
+	USART_COMM0_SYSCLK,
+	&USART_COMM0_PORT,
+	USART_COMM0_PORT_PIN_TX,
+	USART_COMM0_PORT_PIN_RX,
+	USART_COMM0_PORT_SYSCLK
+};
+
+static const usartSpecification COMM1_SPEC = {
+	&USART_COMM1,
+	USART_COMM1_SYSCLK,
+	&USART_COMM1_PORT,
+	USART_COMM1_PORT_PIN_TX,
+	USART_COMM1_PORT_PIN_RX,
+	USART_COMM1_PORT_SYSCLK
+};
+
+static const usartSpecification XBEE_SPEC = {
+	&USART_XBEE,
+	USART_XBEE_SYSCLK,
+	&USART_XBEE_PORT,
+	USART_XBEE_PORT_PIN_TX,
+	USART_XBEE_PORT_PIN_RX,
+	USART_XBEE_PORT_SYSCLK
+};
+
 /*! \brief Called by CDC interface
  * Callback running when CDC device have received data
  */
-void uart_rx_notify(uint8_t port);
+void uart_rx_notify(usartSpecification usartSpec);
 
 /*! \brief Configures communication line
  *
  * \param cfg      line configuration
  */
-void uart_config(uint8_t port, usb_cdc_line_coding_t * cfg);
+void uart_config(usartSpecification usartSpec, usb_cdc_line_coding_t * cfg);
 
 /*! \brief Opens communication line
  */
-void uart_open(uint8_t port);
+void uart_open(usartSpecification usartSpec);
 
 /*! \brief Closes communication line
  */
-void uart_close(uint8_t port);
+void uart_close(usartSpecification usartSpec);
 
 #endif // _UART_H_
