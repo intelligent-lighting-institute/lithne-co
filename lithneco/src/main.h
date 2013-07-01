@@ -47,6 +47,12 @@
 #include "usb_protocol_cdc.h"
 
 /*! \brief Opens the communication port
+ * This is called by CDC interface when a byte has been received on USB.
+ *
+ */
+void main_cdc_rx_notify(uint8_t port);
+
+/*! \brief Opens the communication port
  * This is called by CDC interface when USB Host enable it.
  *
  * \retval true if cdc startup is successfully done

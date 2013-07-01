@@ -19,12 +19,15 @@ void board_init(void)
 	ioport_set_pin_dir(C_DEBUGLED, IOPORT_DIR_OUTPUT);
 	
 	ioport_set_pin_dir(COMM0_M2C, IOPORT_DIR_INPUT); // RX
+	ioport_set_pin_high(COMM0_C2M); // TX
 	ioport_set_pin_dir(COMM0_C2M, IOPORT_DIR_OUTPUT); // TX
 	
 	ioport_set_pin_dir(COMM1_M2C, IOPORT_DIR_INPUT); // RX
+	ioport_set_pin_high(COMM1_C2M); // TX
 	ioport_set_pin_dir(COMM1_C2M, IOPORT_DIR_OUTPUT); // TX
 	
 	ioport_set_pin_dir(XBEE_DOUT, IOPORT_DIR_INPUT); // Xbee -> me
+	ioport_set_pin_high(XBEE_DIN); // me -> xbee
 	ioport_set_pin_dir(XBEE_DIN, IOPORT_DIR_OUTPUT); // me -> xbee	
 	
 	ioport_set_pin_dir(nPBRD_PRESENT, IOPORT_DIR_INPUT);

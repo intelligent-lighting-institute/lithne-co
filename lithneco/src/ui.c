@@ -102,17 +102,20 @@ void ui_com_overflow(void)
 
 void ui_com_rx_notify(uint8_t port){
 	// Byte received on USB on port in argument
-	char c = udi_cdc_multi_getc(port);	
-	switch(port){
-		case 0:
-			usart_serial_putchar(&USART_COMM0, c);
-			break;
-		case 1:
-			usart_serial_putchar(&USART_COMM1, c);
-			break;
-		case 2:
-			usart_serial_putchar(&USART_XBEE, c);
-			break;
+	while(udi_cdc_multi_is_rx_ready(port)){
+		int c = udi_cdc_multi_getc(port);	
+		udi_cdc_multi_putc(port, c);
+		/*switch(port){
+			case 0:
+				usart_serial_putchar(&USART_COMM0, c);
+				break;
+			case 1:
+				usart_serial_putchar(&USART_COMM1, c);
+				break;
+			case 2:
+				usart_serial_putchar(&USART_XBEE, c);
+				break;
+		}*/
 	}
 }
 
