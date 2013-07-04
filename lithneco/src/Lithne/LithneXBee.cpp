@@ -25,8 +25,6 @@
 	#include "WProgram.h"
 #endif
 
-#include "HardwareSerial.h"
-
 XBeeResponse::XBeeResponse() {
 
 }
