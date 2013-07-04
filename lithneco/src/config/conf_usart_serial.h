@@ -1,9 +1,9 @@
 /**
- * \file
+ * \file *********************************************************************
  *
- * \brief Main functions
+ * \brief USART Serial configuration
  *
- * Copyright (c) 2012 Atmel Corporation. All rights reserved.
+ * Copyright (c) 2011 Atmel Corporation. All rights reserved.
  *
  * \asf_license_start
  *
@@ -41,60 +41,34 @@
  *
  */
 
-#ifndef _MAIN_H_
-#define _MAIN_H_
+#ifndef CONF_USART_SERIAL_H_INCLUDED
+#define CONF_USART_SERIAL_H_INCLUDED
 
-#include "usb_protocol_cdc.h"
+#define  USART_COMM0               USARTC0
+#define  USART_COMM0_RX_Vect       USARTC0_RXC_vect
+#define  USART_COMM0_DRE_Vect      USARTC0_DRE_vect
+//#define  USART_COMM0_SYSCLK        SYSCLK_USART0
+//#define  USART_COMM0_PORT          PORTC
+//#define  USART_COMM0_PORT_SYSCLK   SYSCLK_PORT_C
 
-/*! \brief Opens the communication port
- * This is called by CDC interface when a byte has been received on USB.
- *
- */
-void main_cdc_rx_notify(uint8_t port);
+#define  USART_COMM1               USARTE0
+#define  USART_COMM1_RX_Vect       USARTE0_RXC_vect
+#define  USART_COMM1_DRE_Vect      USARTE0_DRE_vect
+//#define  USART_COMM1_SYSCLK        SYSCLK_USART0
+//#define  USART_COMM1_PORT          PORTE
+//#define  USART_COMM1_PORT_SYSCLK   SYSCLK_PORT_E
 
-/*! \brief Opens the communication port
- * This is called by CDC interface when USB Host enable it.
- *
- * \retval true if cdc startup is successfully done
- */
-bool main_cdc_enable(uint8_t port);
+#define  USART_XBEE				   USARTC1
+#define  USART_XBEE_RX_Vect        USARTC1_RXC_vect
+#define  USART_XBEE_DRE_Vect       USARTC1_DRE_vect
+//#define  USART_XBEE_SYSCLK         SYSCLK_USART0
+//#define  USART_XBEE_PORT           PORTC
+//#define  USART_XBEE_PORT_SYSCLK    SYSCLK_PORT_C
 
-/*! \brief Closes the communication port
- * This is called by CDC interface when USB Host disable it.
- */
-void main_cdc_disable(uint8_t port);
+#define USART_SERIAL_BAUDRATE            115200
+#define USART_SERIAL_CHAR_LENGTH         USART_CHSIZE_8BIT_gc
+#define USART_SERIAL_PARITY              USART_PMODE_DISABLED_gc
+#define USART_SERIAL_STOP_BIT            false
 
-/*! \brief Manages the leds behaviors
- * Called when a start of frame is received on USB line each 1ms.
- */
-void main_sof_action(void);
 
-/*! \brief Enters the application in low power mode
- * Callback called when USB host sets USB line in suspend state
- */
-void main_suspend_action(void);
-
-/*! \brief Turn on a led to notify active mode
- * Called when the USB line is resumed from the suspend state
- */
-void main_resume_action(void);
-
-/*! \brief Save new DTR state to change led behavior.
- * The DTR notify that the terminal have open or close the communication port.
- */
-void main_cdc_set_dtr(uint8_t port, bool b_enable);
-
-void main_cdc_config(uint8_t port, usb_cdc_line_coding_t * cfg);
-
-void main_cdc_open(uint8_t port);
-
-void main_cdc_close(uint8_t port);
-
-/*! \brief Returns a USART pointer to a hardware USART based on the USB port number
- */
-USART_t * main_port_to_usart(uint8_t port);
-
-void main_reset_main_proc(void);
-
-#endif // _MAIN_H_
-
+#endif /* CONF_USART_SERIAL_H_INCLUDED */

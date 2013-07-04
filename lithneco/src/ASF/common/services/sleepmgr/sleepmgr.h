@@ -192,7 +192,13 @@ static inline enum sleepmgr_mode sleepmgr_get_sleep_mode(void)
 	// Find first non-zero lock count, starting with the shallowest modes.
 	while (!(*lock_ptr)) {
 		lock_ptr++;
-		sleep_mode++;
+		// Workaround for bug in ASF for g++, see
+		// http://asf.atmel.com/bugzilla/show_bug.cgi?format=multiple&id=2835
+		#ifdef __cplusplus 
+			sleep_mode = (enum sleepmgr_mode)(sleep_mode + 1);
+		#else
+			sleep_mode++;
+		#endif
 	}
 
 	// Catch the case where one too many sleepmgr_unlock_mode() call has been

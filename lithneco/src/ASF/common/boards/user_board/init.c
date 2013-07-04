@@ -31,12 +31,12 @@ void board_init(void)
 	ioport_set_pin_dir(XBEE_DIN, IOPORT_DIR_OUTPUT); // me -> xbee	
 	
 	ioport_set_pin_dir(nPBRD_PRESENT, IOPORT_DIR_INPUT);
-	ioport_set_pin_dir(MAIN_nRST, IOPORT_DIR_INPUT);
+	
+	ioport_set_pin_dir(MAIN_nRST, IOPORT_DIR_INPUT); // main processor has a pull-up resistor, set as input to prevent pulling it down.
 	ioport_set_pin_mode(MAIN_nRST, IOPORT_MODE_PULLUP);
 	
 	ioport_set_pin_dir(USBDET, IOPORT_DIR_INPUT);
-	ioport_set_pin_dir(MAIN_nRST, IOPORT_DIR_INPUT); // main processor has a pull-up resistor, set as input to prevent pulling it down.
-	
+		
 	// CTS - "Clear to Send" this is a flow control pin that can be used to determine if there is data in the XBee input buffer ready to be read
 	ioport_set_pin_dir(XBEE_nCTS, IOPORT_DIR_INPUT); 
 	ioport_set_pin_high(XBEE_nCTS);

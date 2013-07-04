@@ -41,11 +41,15 @@
  *
  */
 
-#include <asf.h>
+extern "C"{
+	#include <asf.h>
+}
+
 #include "conf_usb.h"
 #include "ui.h"
 #include "print.h"
 #include "uart.h"
+
 
 volatile bool main_b_cdc_enable = false;
 volatile uint8_t main_port_open;
@@ -56,6 +60,7 @@ int main(void)
 {
 	irq_initialize_vectors();
 	cpu_irq_enable();
+	delay_init();
 
 	// Initialize the sleep manager
 	sleepmgr_init();
@@ -78,33 +83,10 @@ int main(void)
 		
 	// The main loop manages only the power mode
 	// because the USB management is done by interrupt
-	uint32_t count = 0;
 	while (true) {
 		sleepmgr_enter_sleep();
 		if (main_b_cdc_enable) {
-			// Here CPU wakeup at each SOF (1ms)
-			/*for (uint8_t port = 0; port < UDI_CDC_PORT_NB; port++) {
-				if (!(main_port_open & (1 << port))) {
-					// Port not open
-					continue;
-				}
-				if (udi_cdc_multi_is_rx_ready(port)) {
-					// data received
-					int value = udi_cdc_multi_getc(port);
-					while(!udi_cdc_multi_putc(port, value));
-					//continue;
-				}
-				
-				
-				
-				if(count++ > 100){
-					udi_cdc_multi_write_buf(port, "PORT", sizeof("PORT")-1);
-					udi_cdc_multi_putc(port, port+'0');
-					udi_cdc_multi_putc(port, '\n');
-					udi_cdc_multi_putc(port, '\r');
-					count = 0;
-				}
-			}*/
+		
 		}
 	}
 }
@@ -113,19 +95,8 @@ void main_cdc_rx_notify(uint8_t port){
 	// Byte received on USB on port in argument
 	ui_com_rx_notify(port);
 	while(udi_cdc_multi_is_rx_ready(port)){
-		int c = udi_cdc_multi_getc(port);	
-		udi_cdc_multi_putc(port, c);
-		/*switch(port){
-			case 0:
-				usart_serial_putchar(&USART_COMM0, c);
-				break;
-			case 1:
-				usart_serial_putchar(&USART_COMM1, c);
-				break;
-			case 2:
-				usart_serial_putchar(&USART_XBEE, c);
-				break;
-		}*/
+		int c = udi_cdc_multi_getc(port);			
+		usart_putchar(main_port_to_usart(port), c);
 	}
 }
 
@@ -158,24 +129,67 @@ void main_cdc_disable(uint8_t port)
 	main_b_cdc_enable = false;
 }
 
+void main_cdc_config(uint8_t port, usb_cdc_line_coding_t * cfg){
+	// Serial settings received from USB
+	USART_t * usart = main_port_to_usart(port);
+	
+	if(usart == NULL){
+		return;
+	}
+	uart_config(usart, cfg)	;
+}
+
 void main_cdc_set_dtr(uint8_t port, bool b_enable)
 {
 	if (b_enable) {
 		// Host terminal has open COM
 		main_port_open |= 1 << port;
+		if(port==0){
+			main_reset_main_proc();
+		}
 		ui_com_open(port);
+		main_cdc_open(port);
 	}else{
 		// Host terminal has close COM
 		main_port_open &= ~(1 << port);
 		ui_com_close(port);
+		main_cdc_close(port);
 	}
 }
 
-void main_cdc_config(uint8_t port, usb_cdc_line_coding_t * cfg){
-
+void main_reset_main_proc(void){
+	ioport_set_pin_dir(MAIN_nRST, IOPORT_DIR_OUTPUT);
+	ioport_set_pin_level(MAIN_nRST, false);
+	delay_ms(10);
+	ioport_set_pin_level(MAIN_nRST, true);
+	ioport_set_pin_dir(MAIN_nRST, IOPORT_DIR_INPUT);
 }
 
 
+void main_cdc_open(uint8_t port){
+	uart_open(main_port_to_usart(port));
+}
+
+void main_cdc_close(uint8_t port){
+	uart_close(main_port_to_usart(port));
+}
+
+USART_t * main_port_to_usart(uint8_t port)
+{
+	USART_t * usart = NULL;
+	switch(port){
+		case 0:
+		usart = &USART_COMM0;
+		break;
+		case 1:
+		usart = &USART_COMM1;
+		break;
+		case 2:
+		usart = &USART_XBEE;
+		break;
+	}
+	return usart;
+}
 
 /**
  * \mainpage ASF USB Device CDC

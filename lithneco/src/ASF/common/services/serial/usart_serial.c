@@ -1,9 +1,11 @@
 /**
+ *
  * \file
  *
- * \brief Main functions
+ * \brief USART Serial driver functions.
  *
- * Copyright (c) 2012 Atmel Corporation. All rights reserved.
+ *
+ * Copyright (c) 2010-2012 Atmel Corporation. All rights reserved.
  *
  * \asf_license_start
  *
@@ -40,61 +42,42 @@
  * \asf_license_stop
  *
  */
+#include "serial.h"
 
-#ifndef _MAIN_H_
-#define _MAIN_H_
-
-#include "usb_protocol_cdc.h"
-
-/*! \brief Opens the communication port
- * This is called by CDC interface when a byte has been received on USB.
+/**
+ * \brief Send a sequence of bytes to USART device
+ *
+ * \param usart  Base address of the USART instance.
+ * \param data   Data buffer to read
+ * \param len    Length of data
  *
  */
-void main_cdc_rx_notify(uint8_t port);
+status_code_t usart_serial_write_packet(usart_if usart, const uint8_t *data,
+		size_t len)
+{
+	while (len) {
+		usart_serial_putchar(usart, *data);
+		len--;
+		data++;
+	}
+	return STATUS_OK;
+}
 
-/*! \brief Opens the communication port
- * This is called by CDC interface when USB Host enable it.
+/**
+ * \brief Receive a sequence of bytes from USART device
  *
- * \retval true if cdc startup is successfully done
+ * \param usart  Base address of the USART instance.
+ * \param data   Data buffer to write
+ * \param len    Length of data
+ *
  */
-bool main_cdc_enable(uint8_t port);
-
-/*! \brief Closes the communication port
- * This is called by CDC interface when USB Host disable it.
- */
-void main_cdc_disable(uint8_t port);
-
-/*! \brief Manages the leds behaviors
- * Called when a start of frame is received on USB line each 1ms.
- */
-void main_sof_action(void);
-
-/*! \brief Enters the application in low power mode
- * Callback called when USB host sets USB line in suspend state
- */
-void main_suspend_action(void);
-
-/*! \brief Turn on a led to notify active mode
- * Called when the USB line is resumed from the suspend state
- */
-void main_resume_action(void);
-
-/*! \brief Save new DTR state to change led behavior.
- * The DTR notify that the terminal have open or close the communication port.
- */
-void main_cdc_set_dtr(uint8_t port, bool b_enable);
-
-void main_cdc_config(uint8_t port, usb_cdc_line_coding_t * cfg);
-
-void main_cdc_open(uint8_t port);
-
-void main_cdc_close(uint8_t port);
-
-/*! \brief Returns a USART pointer to a hardware USART based on the USB port number
- */
-USART_t * main_port_to_usart(uint8_t port);
-
-void main_reset_main_proc(void);
-
-#endif // _MAIN_H_
-
+status_code_t usart_serial_read_packet(usart_if usart, uint8_t *data,
+		size_t len)
+{
+	while (len) {
+		usart_serial_getchar(usart, data);
+		len--;
+		data++;
+	}
+	return STATUS_OK;
+}

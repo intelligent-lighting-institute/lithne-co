@@ -5,8 +5,10 @@
  *  Author: Elco
  */ 
 
+extern "C"{
+#include "asf.h"	
+}
 
-#include <asf.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include "print.h"
