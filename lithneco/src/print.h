@@ -9,6 +9,8 @@
 #ifndef DEBUG_H_
 #define DEBUG_H_
 
+#include <progmem.h>
+
 #define DEBUG_PORT 2 // COM port 2 is used for debug messages from the co-processor
 #define PRINT_BUFFER_SIZE 256 // A debug message is maximally 256 bytes
 

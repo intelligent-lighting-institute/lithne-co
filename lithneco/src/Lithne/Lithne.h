@@ -75,6 +75,7 @@ class LithneClass
 	/*	Functions that return nothing	*/
 	void init( uint32_t _baud = 115200, HardwareSerial & port = Serial );
 	void begin( uint32_t _baud = 115200, HardwareSerial & port = Serial );
+	void setSerial(HardwareSerial &_port );
 	void setRecipient( uint8_t _i );
 	void setRecipient( XBeeAddress64 _add64 );
 	void setRecipient16( uint16_t _add16 );

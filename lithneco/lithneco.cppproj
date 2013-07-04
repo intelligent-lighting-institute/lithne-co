@@ -124,6 +124,7 @@
     <ListValues>
       <Value>NDEBUG</Value>
       <Value>ARDUINO=100</Value>
+      <Value>BOARD=USER_BOARD</Value>
     </ListValues>
   </avrgcccpp.compiler.symbols.DefSymbols>
   <avrgcccpp.compiler.directories.IncludePaths>
@@ -195,6 +196,7 @@
   </avrgcccpp.assembler.general.IncludePaths>
 </AvrGccCpp>
     </ToolchainSettings>
+    <PostBuildEvent>"$(ToolchainDir)\avr-nm.exe" --size-sort --print-size -r -td "$(OutputDirectory)\$(OutputFileName)$(OutputFileExtension)" &gt; $(OutputDirectory)\avr-size.txt</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <ToolchainSettings>
@@ -238,6 +240,12 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="src\lithneProgrammer.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\lithneProgrammer.h">
+      <SubType>compile</SubType>
+    </Compile>
     <None Include="lithne_cdc.cat">
       <SubType>compile</SubType>
     </None>
@@ -482,6 +490,18 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\main.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\nodeInfo.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\nodeInfo.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\pageBuffer.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\pageBuffer.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="src\print.cpp">

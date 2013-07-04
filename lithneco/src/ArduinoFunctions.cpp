@@ -35,6 +35,7 @@
 	#define F_CPU 32000000L
 #endif
 
+#include "compiler.h"
 #include <Arduino.h>
 extern "C"{
 	#include <pins_arduino.h>
@@ -46,6 +47,8 @@ extern "C"{
 #include <wiring.c>
 #include <wiring_digital.c>
 #include <Stream.cpp>
+#include <WString.cpp>
+#include <WMath.cpp> // for Random function
 
 // Include HardwareSerial.cpp, but do not let it define interrupt service routines.
 // These are already defined in uart.cpp
@@ -63,10 +66,9 @@ extern "C"{
 //#include <wiring_pulse.c>
 //#include <wiring_shift.c>
 //#include <IPAddress.cpp>
-//#include <Stream.cpp>
 //#include <Tone.cpp>
-//#include <WMath.cpp>
-//#include <WString.cpp>
+
+
 
 // Restore original warnings configuration
 #pragma GCC diagnostic pop

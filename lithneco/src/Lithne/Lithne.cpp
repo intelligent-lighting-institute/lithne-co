@@ -136,6 +136,12 @@ void LithneClass::begin( uint32_t _baud, HardwareSerial &_port )
 	xbee.begin( _baud );
 }
 
+/** only set the Serial port, without messing with its settings **/
+void LithneClass::setSerial(HardwareSerial &_port )
+{
+	xbee.setSerial( _port );
+}
+
 /** Set the function to call in the outgoing message using a String. 
 	This String is internally hashed by the Lithne.hash( String ) function,
 	and stored in a two-byte integer.

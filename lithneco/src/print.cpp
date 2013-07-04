@@ -12,7 +12,7 @@ extern "C"{
 #include <stdarg.h>
 #include <stdio.h>
 #include "print.h"
-
+	
 static char printBuffer[PRINT_BUFFER_SIZE]; 
 extern volatile uint8_t main_port_open;
 

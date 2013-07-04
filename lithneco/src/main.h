@@ -94,7 +94,5 @@ void main_cdc_close(uint8_t port);
  */
 USART_t * main_port_to_usart(uint8_t port);
 
-void main_reset_main_proc(void);
-
 #endif // _MAIN_H_
 

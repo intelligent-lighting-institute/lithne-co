@@ -49,7 +49,9 @@ extern "C"{
 #include "ui.h"
 #include "print.h"
 #include "uart.h"
+#include "lithneProgrammer.h"
 
+#include <Lithne/Lithne.h>
 
 volatile bool main_b_cdc_enable = false;
 volatile uint8_t main_port_open;
@@ -80,14 +82,55 @@ int main(void)
 	uart_start_interrupt(&USART_COMM0);
 	uart_start_interrupt(&USART_COMM1);
 	uart_start_interrupt(&USART_XBEE);
-		
+	
+	Lithne.setSerial(Serial1);
 	// The main loop manages only the power mode
 	// because the USB management is done by interrupt
 	while (true) {
-		sleepmgr_enter_sleep();
-		if (main_b_cdc_enable) {
-		
-		}
+		/*
+		if ( Lithne.available() ){
+			// Only process messages inside the processing scope
+			if ( Lithne.getScope() == lithneProgrammingScope ){
+				lithneProgrammer.updateRemoteAddress();
+			}
+				
+			// The programming function receives all data packets containing the program to be written
+			if ( Lithne.getFunction() == fProgramming )
+			{
+				lithneProgrammer.processPacket();
+			}
+			// Check-in Function
+			else if (Lithne.getFunction() == fCheckingIn && !lithneProgrammer.busyProgramming())
+			{
+				lithneProgrammer.processCheckin();
+			}
+			// Node Name Functions - Empty messages are a request, Messages with content set the node name
+			else if (Lithne.getFunction() == fNodeName && !lithneProgrammer.busyProgramming())
+			{
+				lithneProgrammer.processNodeName();	
+			}
+			// LastUpload Functions - Empty messages are a request, Messages with content set the time of last upload
+			else if (Lithne.getFunction() == fLastUpload && !lithneProgrammer.busyProgramming())
+			{
+				lithneProgrammer.processLastUpload();
+			}
+			// File Name Functions - Empty messages are a request, Messages with content set the file name
+			else if (Lithne.getFunction() == fFileName && !lithneProgrammer.busyProgramming())
+			{
+				lithneProgrammer.processFileName();
+			}
+			// reset the main processor
+			else if (Lithne.getFunction() == fResetMain && !lithneProgrammer.busyProgramming())
+			{
+				lithneProgrammer.resetMain();
+			}
+			// Kill the main processor for a longer period of time, or turn it back on again
+			else if (Lithne.functionIs("killMain") && !lithneProgrammer.busyProgramming())
+			{
+				lithneProgrammer.processKill();
+			}
+			
+		}*/
 	}
 }
 
@@ -129,7 +172,8 @@ void main_cdc_disable(uint8_t port)
 	main_b_cdc_enable = false;
 }
 
-void main_cdc_config(uint8_t port, usb_cdc_line_coding_t * cfg){
+void main_cdc_config(uint8_t port, usb_cdc_line_coding_t * cfg)
+{
 	// Serial settings received from USB
 	USART_t * usart = main_port_to_usart(port);
 	
@@ -145,7 +189,7 @@ void main_cdc_set_dtr(uint8_t port, bool b_enable)
 		// Host terminal has open COM
 		main_port_open |= 1 << port;
 		if(port==0){
-			main_reset_main_proc();
+			lithneProgrammer.resetMain();
 		}
 		ui_com_open(port);
 		main_cdc_open(port);
@@ -157,20 +201,14 @@ void main_cdc_set_dtr(uint8_t port, bool b_enable)
 	}
 }
 
-void main_reset_main_proc(void){
-	ioport_set_pin_dir(MAIN_nRST, IOPORT_DIR_OUTPUT);
-	ioport_set_pin_level(MAIN_nRST, false);
-	delay_ms(10);
-	ioport_set_pin_level(MAIN_nRST, true);
-	ioport_set_pin_dir(MAIN_nRST, IOPORT_DIR_INPUT);
-}
 
-
-void main_cdc_open(uint8_t port){
+void main_cdc_open(uint8_t port)
+{
 	uart_open(main_port_to_usart(port));
 }
 
-void main_cdc_close(uint8_t port){
+void main_cdc_close(uint8_t port)
+{
 	uart_close(main_port_to_usart(port));
 }
 
