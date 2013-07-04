@@ -1,0 +1,123 @@
+#######################################
+# Syntax Coloring Map For Lithne
+
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+ #######################################
+
+
+Lithne	KEYWORD1
+
+Message	KEYWORD1
+Node	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+
+init	KEYWORD2
+setRecipient	KEYWORD2
+setRecipient16	KEYWORD2
+setRecipient64	KEYWORD2
+setFunction	KEYWORD2
+addArgument	KEYWORD2
+setStringArgument	KEYWORD2
+send		KEYWORD2
+sendMessage	KEYWORD2
+
+sendDBRequest	KEYWORD2
+sendDBRequest16	KEYWORD2
+
+getMyInfo	KEYWORD2
+setScope	KEYWORD2
+addScope	KEYWORD2
+removeScope	KEYWORD2
+addScope	KEYWORD2
+helloWorld	KEYWORD2
+
+#available	KEYWORD2
+addNode	KEYWORD2
+nodeKnown	KEYWORD2
+nodeKnown64	KEYWORD2
+nodeKnown16	KEYWORD2
+newDBMeasurement	KEYWORD2
+hasScope	KEYWORD2
+functionIs	KEYWORD2
+
+digitalPin	KEYWORD2
+pwmPin		KEYWORD2
+getNumberOfArguments	KEYWORD2
+getNumberOfNodes	KEYWORD2
+
+getFunction	KEYWORD2
+getArgument	KEYWORD2
+getStringArgument	KEYWORD2
+getMyAddress16	KEYWORD2
+getMyPAN	KEYWORD2
+getMyAssociationStatus	KEYWORD2
+getScope	KEYWORD2
+setScope	KEYWORD2
+hash	KEYWORD2
+getSender16	KEYWORD2
+getRecipient64	KEYWORD2
+
+sendATCommand	KEYWORD2
+
+getSender64	KEYWORD2
+getMyAddress64	KEYWORD2
+
+getNode		KEYWORD2
+getNodeBy64	KEYWORD2
+getNodyBy16	KEYWORD2
+getNodeByID	KEYWORD2
+
+setID		KEYWORD2
+setAddress64	KEYWORD2
+setAddress16	KEYWORD2
+hasAddress16	KEYWORD2
+getDB		KEYWORD2
+getAddress16	KEYWORD2
+getMSB		KEYWORD2
+getLSB		KEYWORD2
+getAddress64	KEYWORD2
+getID		KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+
+MAX_NODES	LITERAL1
+MAX_ARGS	LITERAL1
+BROADCAST	LITERAL1
+COORDINATOR	LITERAL1
+LITHNE_SERIAL	LITERAL1
+DB_MEMORY	LITERAL1
+UNKNOWN_NODE	LITERAL1
+UNKNOWN_NODE_ID	LITERAL1
+UNKNOWN_ADD16	LITERAL1
+UNKNOWN_16B	LITERAL1
+UNKNOWN_ADD64	LITERAL1
+UNKNOWN_64B	LITERAL1
+UNKNOWN_PAN_ID	LITERAL1
+UNKNOWN_STATUS	LITERAL1
+COORDINATOR_ADDR	LITERAL1
+BROADCAST_ADDR	LITERAL1
+
+HELLO_WORLD	LITERAL1
+NO_REPLY	LITERAL1
+REPLY	LITERAL1
+ADD_GROUP	LITERAL1
+SET_GROUP	LITERAL1
+ADD_TO_GROUP	LITERAL1
+REMOVE_GROUP	LITERAL1
+REMOVE_FROM_GROUP	LITERAL1
+RENAME_GROUP	LITERAL1
+CHANGE_GROUP	LITERAL1
+GET_GROUP	LITERAL1
+
+MAX_SCOPES	LITERAL1
+NO_SCOPE	LITERAL1

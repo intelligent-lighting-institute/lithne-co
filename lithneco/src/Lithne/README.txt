@@ -1,0 +1,2 @@
+The Lithne Library is developed by Serge Offermans and Remco Magielse as part of their doctoral research at the Intelligent Lighting Institute (ILI) of the Eindhoven University of Technology.
+http://www.tue.nl/ili

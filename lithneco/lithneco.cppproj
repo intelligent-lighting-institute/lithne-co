@@ -445,6 +445,39 @@
     <Compile Include="src\config\conf_usb.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="src\Lithne\cppfix.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\Lithne\cppfix.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\Lithne\Lithne.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\Lithne\Lithne.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\Lithne\LithneDefinitions.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\Lithne\LithneXBee.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\Lithne\LithneXBee.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\Lithne\Message.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\Lithne\Message.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\Lithne\Node.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="src\Lithne\Node.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="src\main.cpp">
       <SubType>compile</SubType>
     </Compile>
@@ -469,6 +502,12 @@
     <Compile Include="src\ui.h">
       <SubType>compile</SubType>
     </Compile>
+    <None Include="src\Lithne\keywords.txt">
+      <SubType>compile</SubType>
+    </None>
+    <None Include="src\Lithne\README.txt">
+      <SubType>compile</SubType>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="src\" />
@@ -508,6 +547,7 @@
     <Folder Include="src\ASF\xmega\utils\bit_handling\" />
     <Folder Include="src\ASF\xmega\utils\preprocessor\" />
     <Folder Include="src\config\" />
+    <Folder Include="src\Lithne\" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\ASF\common\utils\make\Makefile.avr.in">
