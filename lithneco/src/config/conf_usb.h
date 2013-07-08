@@ -114,11 +114,10 @@
  * @{
  */
 
-//! Define 4 USB communication ports
-//! 0 = COMM0
-//! 1 = COMM1
-//! 2 = XBEE direct
-//! 3 = co-processor debug
+//! Define 3 USB communication ports
+//! 0 = COMM0: transparent to main processor serial
+//! 1 = XBEE Direct (disconnects XBEE from the main processor)
+//! 2 = Xbee Spy: receive debug messages and spy on xbee packets
 #define  UDI_CDC_PORT_NB 3
 
 //! Interface callback definition

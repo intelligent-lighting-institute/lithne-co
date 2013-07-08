@@ -176,45 +176,6 @@ ISR(USART_COMM0_DRE_Vect)
 	}
 }
 
-// Interrupt vectors for COMM1
-ISR(USART_COMM1_RX_Vect)
-{
-	int val;
-
-	// Data received
-	ui_com_tx_start();
-
-	if (0 != (USART_COMM1.STATUS & (USART_FERR_bm | USART_BUFOVF_bm))) {
-		udi_cdc_multi_signal_framing_error(1);
-		ui_com_error();
-	}
-
-	// Transfer UART RX fifo to CDC TX
-	val = USART_COMM1.DATA;
-	if (!udi_cdc_multi_is_tx_ready(1)) {
-		// Fifo full
-		udi_cdc_multi_signal_overrun(1);
-		ui_com_overflow();
-		}else{
-		udi_cdc_multi_putc(1, val);
-	}
-	ui_com_tx_stop(); 
-}
-
-ISR(USART_COMM1_DRE_Vect)
-{
-	// Data send
-	if (udi_cdc_multi_is_rx_ready(1)) {
-		// Transmit next data
-		ui_com_rx_start();
-		USART_COMM1.DATA = udi_cdc_multi_getc(1);
-		} else {
-		// Fifo empty then Stop UART transmission
-		USART_COMM1.CTRLA = (register8_t) USART_RXCINTLVL_HI_gc |
-		(register8_t) USART_DREINTLVL_OFF_gc;
-		ui_com_rx_stop();
-	}
-}
 
 // Interrupt vectors for COMM1
 ISR(USART_XBEE_RX_Vect)
@@ -225,18 +186,18 @@ ISR(USART_XBEE_RX_Vect)
 	ui_com_tx_start();
 
 	if (0 != (USART_XBEE.STATUS & (USART_FERR_bm | USART_BUFOVF_bm))) {
-	udi_cdc_multi_signal_framing_error(2);
+	udi_cdc_multi_signal_framing_error(1);
 		ui_com_error();
 	}
 
 	// Transfer UART RX fifo to CDC TX
 	val = USART_XBEE.DATA;
-	if (!udi_cdc_multi_is_tx_ready(2)) {
+	if (!udi_cdc_multi_is_tx_ready(1)) {
 		// Fifo full
-		udi_cdc_multi_signal_overrun(2);
+		udi_cdc_multi_signal_overrun(1);
 		ui_com_overflow();
 		}else{
-	udi_cdc_multi_putc(2, val);
+	udi_cdc_multi_putc(1, val);
 	}
 	ui_com_tx_stop();
 }
@@ -244,13 +205,53 @@ ISR(USART_XBEE_RX_Vect)
 ISR(USART_XBEE_DRE_Vect)
 {
 	// Data send
-	if (udi_cdc_multi_is_rx_ready(2)) {
+	if (udi_cdc_multi_is_rx_ready(1)) {
 		// Transmit next data
 		ui_com_rx_start();
-		USART_XBEE.DATA = udi_cdc_multi_getc(2);
+		USART_XBEE.DATA = udi_cdc_multi_getc(1);
 		} else {
 		// Fifo empty then Stop UART transmission
 		USART_XBEE.CTRLA = (register8_t) USART_RXCINTLVL_HI_gc |
+		(register8_t) USART_DREINTLVL_OFF_gc;
+		ui_com_rx_stop();
+	}
+}
+
+// Interrupt vectors for COMM1
+ISR(USART_COMM1_RX_Vect)
+{
+	int val;
+
+	// Data received
+	ui_com_tx_start();
+
+	if (0 != (USART_COMM1.STATUS & (USART_FERR_bm | USART_BUFOVF_bm))) {
+		udi_cdc_multi_signal_framing_error(2);
+		ui_com_error();
+	}
+
+	// Transfer UART RX fifo to CDC TX
+	val = USART_COMM1.DATA;
+	if (!udi_cdc_multi_is_tx_ready(2)) {
+		// Fifo full
+		udi_cdc_multi_signal_overrun(2);
+		ui_com_overflow();
+		}else{
+		udi_cdc_multi_putc(2, val);
+	}
+	ui_com_tx_stop();
+}
+
+ISR(USART_COMM1_DRE_Vect)
+{
+	// Data send
+	if (udi_cdc_multi_is_rx_ready(2)) {
+		// Transmit next data
+		ui_com_rx_start();
+		USART_COMM1.DATA = udi_cdc_multi_getc(2);
+		} else {
+		// Fifo empty then Stop UART transmission
+		USART_COMM1.CTRLA = (register8_t) USART_RXCINTLVL_HI_gc |
 		(register8_t) USART_DREINTLVL_OFF_gc;
 		ui_com_rx_stop();
 	}

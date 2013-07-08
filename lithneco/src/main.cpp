@@ -248,17 +248,17 @@ void main_cdc_open(uint8_t port)
 	switch(port){
 		case 0: // COMM0
 			//lithneProgrammer.resetMain();
-			uart_open(&USART_COMM0);
-			uart_start_interrupt(&USART_COMM0);
-			printfToPort_P(0, PSTR("Connected to main processor Serial\r\n"));
+			//uart_open(&USART_COMM0);
+			//uart_start_interrupt(&USART_COMM0);
+			//printfToPort_P(0, PSTR("Connected to main processor Serial\r\n"));
 		break;
 		case 1: // XBEE direct
 			xbeeDirectNew = true;
 			//lithneProgrammer.setMainReset(true);
 			//lithneProgrammer.resetXbee();
-			uart_stop_interrupt(&USART_COMM1);
-			uart_close(&USART_COMM1);
-			printfToPort_P(1, PSTR("XBEE disconnected from main processor, now directly talking to XBEE\r\n"));
+			//uart_stop_interrupt(&USART_XBEE);
+			//uart_close(&USART_XBEE);
+			// printfToPort_P(1, PSTR("XBEE disconnected from main processor, now directly talking to XBEE\r\n"));
 		break;
 		case 2: // XBEE spy/debug
 		break;						
@@ -269,14 +269,14 @@ void main_cdc_close(uint8_t port)
 {
 	switch(port){
 		case 0: // COMM0		
-			uart_stop_interrupt(&USART_COMM0);
-			uart_close(&USART_COMM0);
+			//uart_stop_interrupt(&USART_COMM0);
+			//uart_close(&USART_COMM0);
 		break;
 		case 1: // XBEE direct
 			//lithneProgrammer.setMainReset(false);
-			xbeeDirectNew = false;
-			uart_open(&USART_COMM1);
-			uart_start_interrupt(&USART_COMM1);
+			//xbeeDirectNew = false;
+			//uart_open(&USART_XBEE);
+			//uart_start_interrupt(&USART_XBEE);
 		break;
 		case 2: // XBEE spy/debug
 		break;
@@ -291,10 +291,10 @@ USART_t * main_port_to_usart(uint8_t port)
 		usart = &USART_COMM0;
 		break;
 		case 1:
-		usart = &USART_COMM1;
+		usart = &USART_XBEE;
 		break;
 		case 2:
-		usart = &USART_XBEE;
+		usart = &USART_COMM1;
 		break;
 	}
 	return usart;
