@@ -46,6 +46,11 @@
 
 #include "usb_protocol_cdc.h"
 
+#define serialCo2Xbee Serial1
+#define serialCo2MainXbee Serial4
+#define serialCo2MainSerial Serial
+
+
 /*! \brief Opens the communication port
  * This is called by CDC interface when a byte has been received on USB.
  *
@@ -93,6 +98,8 @@ void main_cdc_close(uint8_t port);
 /*! \brief Returns a USART pointer to a hardware USART based on the USB port number
  */
 USART_t * main_port_to_usart(uint8_t port);
+
+int freeRam ();
 
 #endif // _MAIN_H_
 

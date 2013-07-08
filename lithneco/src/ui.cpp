@@ -108,10 +108,10 @@ void ui_com_rx_notify(uint8_t port){
 
 void ui_process(uint16_t framenumber)
 {
-	if (0 == framenumber) {
+	if (0 == framenumber || 1000 == framenumber) {
 		ioport_set_pin_level(C_DEBUGLED, true);
 	}
-	if (1000 == framenumber) {
+	if (500 == framenumber || 1500 == framenumber) {
 		ioport_set_pin_level(C_DEBUGLED, false);
 	}
 }

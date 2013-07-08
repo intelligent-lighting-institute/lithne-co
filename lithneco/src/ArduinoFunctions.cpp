@@ -46,16 +46,16 @@ extern "C"{
 #include <new.cpp>
 #include <wiring.c>
 #include <wiring_digital.c>
-#include <Stream.cpp>
-#include <WString.cpp>
-#include <WMath.cpp> // for Random function
+//#include <Stream.cpp>
+//#include <WString.cpp>
+//#include <WMath.cpp> // for Random function
 
 // Include HardwareSerial.cpp, but do not let it define interrupt service routines.
 // These are already defined in uart.cpp
 #pragma push_macro("ISR")
 #undef ISR
 #define ISR(_vector) void removed_ISR_for##_vector(void)
-#include <HardwareSerial.cpp>
+//#include <HardwareSerial.cpp>
 #undef ISR
 #pragma pop_macro("ISR")
     
@@ -67,8 +67,6 @@ extern "C"{
 //#include <wiring_shift.c>
 //#include <IPAddress.cpp>
 //#include <Tone.cpp>
-
-
 
 // Restore original warnings configuration
 #pragma GCC diagnostic pop

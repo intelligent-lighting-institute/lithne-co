@@ -18,7 +18,10 @@ extern "C"{
 #include "main.h"
 #include "ui.h"
 #include "print.h"
+#include <HardwareSerial.h>
 
+// when xbeeDirect is true, the xbee serial port is disconnected from the main processor and connected to USB
+extern volatile bool xbeeDirect;
 
 void uart_start_interrupt(USART_t * usart)
 {
@@ -37,7 +40,6 @@ void uart_stop_interrupt(USART_t * usart)
 void uart_open(USART_t * usart)
 {
 	sysclk_enable_peripheral_clock(usart);
-	uart_start_interrupt(usart);
 	usart_tx_enable(usart);
 	usart_rx_enable(usart);
 }
@@ -50,6 +52,8 @@ void uart_close(USART_t * usart)
 	// Close RS232 communication
 	usart->CTRLB = 0;
 }
+
+
 
 void uart_config(USART_t * usart, usb_cdc_line_coding_t * cfg)
 {
@@ -104,13 +108,13 @@ void uart_config(USART_t * usart, usb_cdc_line_coding_t * cfg)
 	usart->CTRLC = reg_ctrlc;
 	// Update baudrate
 	uart_set_baudrate(usart, cfg->dwDTERate);
-	debugMessage("baud %lu", cfg->dwDTERate);
+	// debugMessage("baud %lu", cfg->dwDTERate);
 }
 
 void uart_set_baudrate(USART_t * usart, le32_t baud){
 	le32_t UART_BSEL_VALUE;
 	le32_t UART_BSCALE_VALUE;
-	if(baud == 115200){
+	if(0){//baud == 115200){
 		// library function does not work well for 115200
 		UART_BSEL_VALUE = 1047;
 		UART_BSCALE_VALUE = -6;
@@ -121,6 +125,15 @@ void uart_set_baudrate(USART_t * usart, le32_t baud){
 		usart_set_baudrate(usart, baud, sysclk_get_cpu_hz());
 	}
 }
+
+
+// Defined in HardwareSerial.cpp:
+/*
+extern ring_buffer Serialrx_buffer; // COMM0 RX
+extern ring_buffer Serial1rx_buffer; // XBEE_RX
+extern ring_buffer Serial4rx_buffer; // COMM1 RX
+void store_char(unsigned char c, ring_buffer *rx_buffer);
+*/
 
 // Interrupt vectors for COMM0
 ISR(USART_COMM0_RX_Vect)
@@ -136,7 +149,7 @@ ISR(USART_COMM0_RX_Vect)
 	}
 
 	// Transfer UART RX fifo to CDC TX
-	val = USART_COMM0.DATA;
+	val = usart_get(&USART_COMM0);
 	
 	if (!udi_cdc_multi_is_tx_ready(0)) {
 		// Fifo full
@@ -150,11 +163,11 @@ ISR(USART_COMM0_RX_Vect)
 
 ISR(USART_COMM0_DRE_Vect)
 {
-	// Data send
+	// TX register empty, check USB for new data
 	if (udi_cdc_multi_is_rx_ready(0)) {
 		// Transmit next data
 		ui_com_rx_start();
-		USART_COMM0.DATA = udi_cdc_multi_getc(0);
+		usart_put(&USART_COMM0, udi_cdc_multi_getc(0));
 		} else {
 		// Fifo empty then Stop UART transmission
 		USART_COMM0.CTRLA = (register8_t) USART_RXCINTLVL_HI_gc |
@@ -185,7 +198,7 @@ ISR(USART_COMM1_RX_Vect)
 		}else{
 		udi_cdc_multi_putc(1, val);
 	}
-	ui_com_tx_stop();
+	ui_com_tx_stop(); 
 }
 
 ISR(USART_COMM1_DRE_Vect)
@@ -208,11 +221,11 @@ ISR(USART_XBEE_RX_Vect)
 {
 	int val;
 
-	// Data received
+// Data received
 	ui_com_tx_start();
 
 	if (0 != (USART_XBEE.STATUS & (USART_FERR_bm | USART_BUFOVF_bm))) {
-		udi_cdc_multi_signal_framing_error(2);
+	udi_cdc_multi_signal_framing_error(2);
 		ui_com_error();
 	}
 
@@ -223,7 +236,7 @@ ISR(USART_XBEE_RX_Vect)
 		udi_cdc_multi_signal_overrun(2);
 		ui_com_overflow();
 		}else{
-		udi_cdc_multi_putc(2, val);
+	udi_cdc_multi_putc(2, val);
 	}
 	ui_com_tx_stop();
 }

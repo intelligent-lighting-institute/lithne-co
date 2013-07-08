@@ -45,21 +45,28 @@ extern "C"{
 	#include <asf.h>
 }
 
+#include <Arduino.h>
 #include "conf_usb.h"
 #include "ui.h"
 #include "print.h"
 #include "uart.h"
-#include "lithneProgrammer.h"
+//#include "lithneProgrammer.h"
 
-#include <Lithne/Lithne.h>
+//#include <Lithne/Lithne.h>
 
 volatile bool main_b_cdc_enable = false;
 volatile uint8_t main_port_open;
+
+volatile bool xbeeDirect = false;
+volatile bool xbeeDirectNew = false; // interrupts set this variable. The main loop switches.
+
 
 /*! \brief Main function. Execution starts here.
  */
 int main(void)
 {
+//	lithneProgrammer.setMainReset(true);
+//	lithneProgrammer.setXbeeReset(true);
 	irq_initialize_vectors();
 	cpu_irq_enable();
 	delay_init();
@@ -74,22 +81,49 @@ int main(void)
 
 	// Start USB stack to authorize VBus monitoring
 	udc_start();
-	
+//	lithneProgrammer.setMainReset(false);
+//	lithneProgrammer.setXbeeReset(false);
 	uart_open(&USART_COMM0);
-	uart_open(&USART_COMM1);
-	uart_open(&USART_XBEE);
 	
+	uart_open(&USART_COMM1);
+	uart_config(&USART_COMM1); //set to default config
+	
+	uart_open(&USART_XBEE);
+	uart_config(&USART_XBEE); //set to default config
+	
+	// COMM0 is a directly forwarded serial to the main processor, handled by interrupts, enabled on USB connect
 	uart_start_interrupt(&USART_COMM0);
+		
+	// COMM1 connects to the main processor for xbee rx/tx forwarding.
 	uart_start_interrupt(&USART_COMM1);
+	
+	// The XBEE serial handled using Arduino's HardwareSerial.
+	// This is done for compatibility with the existing Lithne library.
+	// The data transfered to and from the main processor by the main program loop.
 	uart_start_interrupt(&USART_XBEE);
 	
-	Lithne.setSerial(Serial1);
+//	serialCo2MainXbee.begin(115200);
+//	serialCo2MainSerial.begin(115200);
+	//lithneProgrammer.init(&serialCo2MainSerial);
+	
+	//Lithne.begin(115200, serialCo2Xbee);
+	//Lithne.addNode( REMOTE, XBeeAddress64(0x00,0x0000FFFF) );         // Broadcast by default
+	
 	// The main loop manages only the power mode
 	// because the USB management is done by interrupt
 	while (true) {
-		/*
+		/*if(!lithneProgrammer.busyProgramming()){
+			xbeeDirect = xbeeDirectNew;
+		}		
+		if(xbeeDirect){
+			// xbee is directly forwarded by interrupts, do nothing
+		}*/
+		
+		printfToPort_P(0, PSTR("Free ram: %d\r\n"), freeRam());
+		delay_ms(1000);
+		/*		
 		if ( Lithne.available() ){
-			// Only process messages inside the processing scope
+			// Only process messages inside the proramming scope
 			if ( Lithne.getScope() == lithneProgrammingScope ){
 				lithneProgrammer.updateRemoteAddress();
 			}
@@ -129,7 +163,15 @@ int main(void)
 			{
 				lithneProgrammer.processKill();
 			}
-			
+			// If the message is not in the 'programming scope' this is a regular incoming Lithne message for the user (main proc) - Forward all bytes to main processor
+			else
+			{
+				for(int i=0; i < Lithne.getXBeePacketSize(); i++)                               //   send data in XBee packet straight through to the main processor
+				{
+					serialCo2MainXbee.write( Lithne.getXBeePacket()[i] );
+				}
+				serialCo2MainXbee.flush();
+			}
 		}*/
 	}
 }
@@ -180,17 +222,16 @@ void main_cdc_config(uint8_t port, usb_cdc_line_coding_t * cfg)
 	if(usart == NULL){
 		return;
 	}
-	uart_config(usart, cfg)	;
+	//if(port  == 0){
+		uart_config(usart, cfg);
+	//}
 }
 
 void main_cdc_set_dtr(uint8_t port, bool b_enable)
 {
 	if (b_enable) {
 		// Host terminal has open COM
-		main_port_open |= 1 << port;
-		if(port==0){
-			lithneProgrammer.resetMain();
-		}
+		main_port_open |= 1 << port;	
 		ui_com_open(port);
 		main_cdc_open(port);
 	}else{
@@ -204,12 +245,42 @@ void main_cdc_set_dtr(uint8_t port, bool b_enable)
 
 void main_cdc_open(uint8_t port)
 {
-	uart_open(main_port_to_usart(port));
+	switch(port){
+		case 0: // COMM0
+			//lithneProgrammer.resetMain();
+			uart_open(&USART_COMM0);
+			uart_start_interrupt(&USART_COMM0);
+			printfToPort_P(0, PSTR("Connected to main processor Serial\r\n"));
+		break;
+		case 1: // XBEE direct
+			xbeeDirectNew = true;
+			//lithneProgrammer.setMainReset(true);
+			//lithneProgrammer.resetXbee();
+			uart_stop_interrupt(&USART_COMM1);
+			uart_close(&USART_COMM1);
+			printfToPort_P(1, PSTR("XBEE disconnected from main processor, now directly talking to XBEE\r\n"));
+		break;
+		case 2: // XBEE spy/debug
+		break;						
+	}
 }
 
 void main_cdc_close(uint8_t port)
 {
-	uart_close(main_port_to_usart(port));
+	switch(port){
+		case 0: // COMM0		
+			uart_stop_interrupt(&USART_COMM0);
+			uart_close(&USART_COMM0);
+		break;
+		case 1: // XBEE direct
+			//lithneProgrammer.setMainReset(false);
+			xbeeDirectNew = false;
+			uart_open(&USART_COMM1);
+			uart_start_interrupt(&USART_COMM1);
+		break;
+		case 2: // XBEE spy/debug
+		break;
+	}
 }
 
 USART_t * main_port_to_usart(uint8_t port)
@@ -228,6 +299,13 @@ USART_t * main_port_to_usart(uint8_t port)
 	}
 	return usart;
 }
+
+int freeRam () {
+	extern int __heap_start, *__brkval;
+	int v;
+	return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
+}
+
 
 /**
  * \mainpage ASF USB Device CDC

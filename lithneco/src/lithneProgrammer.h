@@ -52,7 +52,7 @@ class LithneProgrammer{
 	LithneProgrammer();
 	~LithneProgrammer();
 	
-	void init();
+	void init(HardwareSerial * serialPtr);
 	void updateRemoteAddress();
 	void processPacket();
 	void processCheckin();
@@ -65,9 +65,12 @@ class LithneProgrammer{
 	int copyPage(int pageNum);
 	void checkUploadProgress();
 	bool busyProgramming();
+	void preventHangup();
 	
 	void resetMain(void);
 	void setMainReset(bool holdInReset);
+	void resetXbee(void);
+	void setXbeeReset(bool holdInReset);
 	
 	/** Define buffer size **/
 	static const uint16_t packetSize = 64;                  //   Bytes per XBee Packet
@@ -84,6 +87,7 @@ class LithneProgrammer{
 	uint16_t packetsIncoming, packetsReceived;    // Keep track of the expected number of incoming packets and the number of packets received so far
 	uint16_t lastPacketRequest;		              // To keep track of our last request so we can request again if it takes too long
 	uint16_t pageNumber;                           // Keep track of the number of pages programmed
+	HardwareSerial * progSerial;
 
 };
 

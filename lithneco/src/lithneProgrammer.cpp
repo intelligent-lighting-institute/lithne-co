@@ -25,7 +25,8 @@ LithneProgrammer::~LithneProgrammer(){
 		
 }
 
-void LithneProgrammer::init(){
+void LithneProgrammer::init(HardwareSerial * serialPtr){
+	progSerial = serialPtr;
 	Lithne.addNode( REMOTE, XBeeAddress64(0x00,0x0000FFFF) );         // Broadcast by default
 }
 
@@ -215,7 +216,7 @@ void LithneProgrammer::checkUploadProgress()
 uint8_t LithneProgrammer::readByteWithDelay()
 {                                  
 	delay(20);
-	return Serial.read();
+	return progSerial->read();
 }
 
 /* Bits below based on Arduino Copier - An arduino sketch that can upload sketches to other boards, by George Caley. */
@@ -226,24 +227,24 @@ int LithneProgrammer::copyPage( int pageNum )
 	{
 		resetMain();
 		
-		while (Serial.available())
+		while (progSerial->available())
 		{               //   Clean up unwanted data that may be stored in Serial buffer, to prevent these bytes being read during readByteWithDelay()
-			responseByte = Serial.read();
+			responseByte = progSerial->read();
 		}
 		
-		Serial.write(0x54);                       //   Select device type = 0x7b
-		Serial.write(0x7b);
+		progSerial->write(0x54);                       //   Select device type = 0x7b
+		progSerial->write(0x7b);
 
 		responseByte = readByteWithDelay();
 		if (responseByte != 0x0d) return 0;
 		
-		Serial.write(0x50);                       //   Enter programming mode
+		progSerial->write(0x50);                       //   Enter programming mode
 		responseByte = readByteWithDelay();
 		if (responseByte != 0x0d) return 0;
 		
-		Serial.write(0x41);                       //   Set Address (0x00, 0x00)
-		Serial.write(byte(0x00));
-		Serial.write(byte(0x00));
+		progSerial->write(0x41);                       //   Set Address (0x00, 0x00)
+		progSerial->write(byte(0x00));
+		progSerial->write(byte(0x00));
 
 		responseByte = readByteWithDelay();
 		if (responseByte != 0x0d) return 0;
@@ -253,14 +254,14 @@ int LithneProgrammer::copyPage( int pageNum )
 	// We pour blocks of data stored in buffer[], ready to write to the AVR's flash
 	// We only write in blocks of 512 bytes for the atXmega256.
 
-	Serial.write(0x42);                       //   Write data into flash, address increment is done automatically
-	Serial.write(0x02);
-	Serial.write(byte(0x00));
-	Serial.write(0x46);
+	progSerial->write(0x42);                       //   Write data into flash, address increment is done automatically
+	progSerial->write(0x02);
+	progSerial->write(byte(0x00));
+	progSerial->write(0x46);
 	
 	for (uint16_t i = 0; i < pageSize; i++)
 	{
-		Serial.write( pbuff.getByte(i) );
+		progSerial->write( pbuff.getByte(i) );
 	}
 
 	responseByte = readByteWithDelay();
@@ -269,11 +270,11 @@ int LithneProgrammer::copyPage( int pageNum )
 	// If we are done uploading
 	if ( doneUploading == true )
 	{
-		Serial.write(0x4c);                       //   Leave programming mode
+		progSerial->write(0x4c);                       //   Leave programming mode
 		responseByte = readByteWithDelay();
 		if (responseByte != 0x0d) return 0;
 		
-		Serial.write(0x45);                       //   Exit bootloader
+		progSerial->write(0x45);                       //   Exit bootloader
 		responseByte = readByteWithDelay();
 		if (responseByte != 0x0d) return 0;
 		
@@ -298,6 +299,13 @@ void LithneProgrammer::resetMain(void)
 	setMainReset(false);
 }
 
+void LithneProgrammer::resetXbee(void)
+{
+	setXbeeReset(true);
+	delay_ms(10);
+	setXbeeReset(false);
+}
+
 void LithneProgrammer::setMainReset(bool holdInReset)
 {
 	if(holdInReset){
@@ -307,6 +315,34 @@ void LithneProgrammer::setMainReset(bool holdInReset)
 	else{
 		ioport_set_pin_level(MAIN_nRST, true);
 		ioport_set_pin_dir(MAIN_nRST, IOPORT_DIR_INPUT);
+	}
+}
+
+void LithneProgrammer::setXbeeReset(bool holdInReset)
+{
+	if(holdInReset){
+		ioport_set_pin_dir(XBEE_nRESET, IOPORT_DIR_OUTPUT);
+		ioport_set_pin_level(XBEE_nRESET, false);
+	}
+	else{
+		ioport_set_pin_level(XBEE_nRESET, true);
+		ioport_set_pin_dir(XBEE_nRESET, IOPORT_DIR_INPUT);
+	}
+}
+
+void LithneProgrammer::preventHangup(){
+	//  Timeout check to prevent code from staying in program mode for ever
+	if ( busyProgramming() )
+	{
+		if ( abs( millis()-lastPacketTimer ) > PROGRAM_TIMEOUT )
+		{
+			programming = false;
+			// reset the main proc in case we were in bootloader or something
+			resetMain();
+			Lithne.getNodeByID( REMOTE )->setAddress64( XBeeAddress64(0x00,0x00) );
+		}
+		// If we are programming, we also check whether we receive new packets on our requests - if not, we request again
+		checkUploadProgress();
 	}
 }
 

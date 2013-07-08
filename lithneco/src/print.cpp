@@ -16,6 +16,7 @@ extern "C"{
 static char printBuffer[PRINT_BUFFER_SIZE]; 
 extern volatile uint8_t main_port_open;
 
+
 void printToPort(uint8_t port, const char * string, uint16_t numChars){	
 	if (!(main_port_open & (1 << port))) {
 		// Port not open
