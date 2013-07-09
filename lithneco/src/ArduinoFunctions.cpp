@@ -55,7 +55,7 @@ extern "C"{
 #pragma push_macro("ISR")
 #undef ISR
 #define ISR(_vector) void removed_ISR_for##_vector(void)
-//#include <HardwareSerial.cpp>
+#include <HardwareSerial.cpp>
 #undef ISR
 #pragma pop_macro("ISR")
     

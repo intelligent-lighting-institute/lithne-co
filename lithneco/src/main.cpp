@@ -52,7 +52,7 @@ extern "C"{
 #include "uart.h"
 #include "lithneProgrammer.h"
 
-//#include <Lithne/Lithne.h>
+#include <Lithne/Lithne.h>
 
 volatile bool main_b_cdc_enable = false;
 volatile uint8_t main_port_open;
