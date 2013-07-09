@@ -71,6 +71,12 @@ class LithneClass
 	const static uint8_t	F_CCT				=	003;	//Control the colour temperate of the object
 	const static uint8_t	F_COLOR				=	004;	//Control the colour of the object
 	const static uint8_t	F_LIGHTPARAMETERS	=	005;	//Control all light parameters of the object*/
+	
+	static Message incomingMessageStatic;
+	static Message outgoingMessageStatic;
+	
+	static Message * incomingMessage;
+	static Message * outgoingMessage;
 		
 	/*	Functions that return nothing	*/
 	void init( uint32_t _baud = 115200, HardwareSerial & port = Serial );

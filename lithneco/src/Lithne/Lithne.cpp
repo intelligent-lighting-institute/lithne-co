@@ -67,12 +67,13 @@ ZBTxStatusResponse txStatus 	=	ZBTxStatusResponse();
 ModemStatusResponse msr 		=	ModemStatusResponse();
 RemoteAtCommandResponse rATcmd	=	RemoteAtCommandResponse();
 
-/* Create two pointers to standard messages we use */
-Message * incomingMessage		=	new Message();
-Message * outgoingMessage		=	new Message();
-
 /* Create a pointer to an array of nodes with length MAX_NODES */
 Node * nodes[MAX_NODES]			=	{0};
+	
+Message LithneClass::incomingMessageStatic;
+Message LithneClass::outgoingMessageStatic;
+Message * LithneClass::incomingMessage;
+Message * LithneClass::outgoingMessage;
 
 /* 
   ___ ___  _  _ ___ _____ ___ _   _  ___ _____ ___  ___  ___ 
@@ -90,13 +91,15 @@ LithneClass::LithneClass()
 	{
 		nodes[i]	=	0;		//Node();
 	}
+	
+	incomingMessage = &incomingMessageStatic;
+	outgoingMessage = &outgoingMessageStatic;
+	
 //	for( uint8_t i; i<MAX_SCOPES; i++ )
 //	{
 //		scopes[i]	=	0;
 //	}
 
-	incomingMessage = 	new Message();
-	outgoingMessage = 	new Message();
 //	numNodes 		= 	0;
 //	newMessage 		= 	false;
 	
