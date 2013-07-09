@@ -50,7 +50,7 @@ extern "C"{
 #include "ui.h"
 #include "print.h"
 #include "uart.h"
-//#include "lithneProgrammer.h"
+#include "lithneProgrammer.h"
 
 //#include <Lithne/Lithne.h>
 
@@ -65,8 +65,8 @@ volatile bool xbeeDirectNew = false; // interrupts set this variable. The main l
  */
 int main(void)
 {
-//	lithneProgrammer.setMainReset(true);
-//	lithneProgrammer.setXbeeReset(true);
+	lithneProgrammer.setMainReset(true);
+	lithneProgrammer.setXbeeReset(true);
 	irq_initialize_vectors();
 	cpu_irq_enable();
 	delay_init();
@@ -81,18 +81,18 @@ int main(void)
 
 	// Start USB stack to authorize VBus monitoring
 	udc_start();
-//	lithneProgrammer.setMainReset(false);
-//	lithneProgrammer.setXbeeReset(false);
-	uart_open(&USART_COMM0);
+	lithneProgrammer.setMainReset(false);
+	lithneProgrammer.setXbeeReset(false);
+	
+	// COMM0 is a directly forwarded serial to the main processor, handled by interrupts, enabled on USB connect
+	//uart_open(&USART_COMM0);
+	//uart_start_interrupt(&USART_COMM0);
 	
 	uart_open(&USART_COMM1);
 	uart_config(&USART_COMM1); //set to default config
 	
 	uart_open(&USART_XBEE);
 	uart_config(&USART_XBEE); //set to default config
-	
-	// COMM0 is a directly forwarded serial to the main processor, handled by interrupts, enabled on USB connect
-	uart_start_interrupt(&USART_COMM0);
 		
 	// COMM1 connects to the main processor for xbee rx/tx forwarding.
 	uart_start_interrupt(&USART_COMM1);
@@ -112,12 +112,14 @@ int main(void)
 	// The main loop manages only the power mode
 	// because the USB management is done by interrupt
 	while (true) {
-		/*if(!lithneProgrammer.busyProgramming()){
+		if(!lithneProgrammer.busyProgramming()){
 			xbeeDirect = xbeeDirectNew;
 		}		
 		if(xbeeDirect){
 			// xbee is directly forwarded by interrupts, do nothing
-		}*/
+		}
+		
+		debugMessage("\r\nxbeeDirect = %d\r\n", xbeeDirect);
 		
 		printfToPort_P(0, PSTR("Free ram: %d\r\n"), freeRam());
 		delay_ms(1000);
@@ -225,6 +227,16 @@ void main_cdc_config(uint8_t port, usb_cdc_line_coding_t * cfg)
 	//if(port  == 0){
 		uart_config(usart, cfg);
 	//}
+	switch(port){
+		case 0: // COMM0
+			uart_config(&USART_COMM0); 			
+		break;
+		case 1: // XBEE direct
+			uart_config(&USART_XBEE);
+		break;
+		case 2: // XBEE spy/debug
+		break;
+	}
 }
 
 void main_cdc_set_dtr(uint8_t port, bool b_enable)
@@ -247,17 +259,17 @@ void main_cdc_open(uint8_t port)
 {
 	switch(port){
 		case 0: // COMM0
-			//lithneProgrammer.resetMain();
-			//uart_open(&USART_COMM0);
-			//uart_start_interrupt(&USART_COMM0);
-			//printfToPort_P(0, PSTR("Connected to main processor Serial\r\n"));
+			lithneProgrammer.resetMain();
+			uart_open(&USART_COMM0);
+			uart_start_interrupt(&USART_COMM0);
+			printfToPort_P(0, PSTR("Connected to main processor Serial\r\n"));
 		break;
 		case 1: // XBEE direct
 			xbeeDirectNew = true;
-			//lithneProgrammer.setMainReset(true);
-			//lithneProgrammer.resetXbee();
-			//uart_stop_interrupt(&USART_XBEE);
-			//uart_close(&USART_XBEE);
+			lithneProgrammer.setMainReset(true); // hold main processor in reset while communicating with serial directly
+			lithneProgrammer.resetXbee();
+			uart_stop_interrupt(&USART_COMM1); // stop communication with main processor on COMM1
+			uart_close(&USART_COMM1);
 			// printfToPort_P(1, PSTR("XBEE disconnected from main processor, now directly talking to XBEE\r\n"));
 		break;
 		case 2: // XBEE spy/debug
@@ -269,14 +281,14 @@ void main_cdc_close(uint8_t port)
 {
 	switch(port){
 		case 0: // COMM0		
-			//uart_stop_interrupt(&USART_COMM0);
-			//uart_close(&USART_COMM0);
+			uart_stop_interrupt(&USART_COMM0);
+			uart_close(&USART_COMM0);
 		break;
 		case 1: // XBEE direct
-			//lithneProgrammer.setMainReset(false);
-			//xbeeDirectNew = false;
-			//uart_open(&USART_XBEE);
-			//uart_start_interrupt(&USART_XBEE);
+			xbeeDirectNew = false;
+			lithneProgrammer.setMainReset(false); // release main processor from reset
+			uart_open(&USART_COMM1); // restore communication with main processor on COMM1
+			uart_start_interrupt(&USART_COMM1);
 		break;
 		case 2: // XBEE spy/debug
 		break;
