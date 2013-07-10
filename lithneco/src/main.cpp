@@ -45,6 +45,8 @@ extern "C"{
 	#include <asf.h>
 }
 
+#define MAX_NODES 1
+
 #include <Arduino.h>
 #include "conf_usb.h"
 #include "ui.h"
@@ -56,10 +58,6 @@ extern "C"{
 
 volatile bool main_b_cdc_enable = false;
 volatile uint8_t main_port_open;
-
-volatile bool xbeeDirect = false;
-volatile bool xbeeDirectNew = false; // interrupts set this variable. The main loop switches.
-
 
 /*! \brief Main function. Execution starts here.
  */
@@ -84,48 +82,34 @@ int main(void)
 	lithneProgrammer.setMainReset(false);
 	lithneProgrammer.setXbeeReset(false);
 	
-	// COMM0 is a directly forwarded serial to the main processor, handled by interrupts, enabled on USB connect
-	//uart_open(&USART_COMM0);
-	//uart_start_interrupt(&USART_COMM0);
+	// USART_COMM0 is a directly forwarded serial to the main processor, handled by interrupts.
+	// The port is opened and interrupts are enabled on USB connect on port 0
 	
+	// USART_COMM1 connects to the main processor for xbee rx/tx forwarding.
+	// USART_XBEE connects to the xbee module
+	// Messages outside the programming scope are forwarded between these ports in the main loop.
+	
+	// When USB port 1 in opened, the main processor is held in reset and USB port 1 is transparently coupled to the XBEE.
+	// Only in that case the RXE interrupt is enabled.
+	
+	// open both COM ports for xbee forward with default settings
 	uart_open(&USART_COMM1);
-	uart_config(&USART_COMM1); //set to default config
-	
 	uart_open(&USART_XBEE);
-	uart_config(&USART_XBEE); //set to default config
 		
-	// COMM1 connects to the main processor for xbee rx/tx forwarding.
-	uart_start_interrupt(&USART_COMM1);
+	usart_set_rx_interrupt_level(&USART_COMM1, USART_INT_LVL_HI);
+	usart_set_rx_interrupt_level(&USART_XBEE, USART_INT_LVL_HI);
 	
-	// The XBEE serial handled using Arduino's HardwareSerial.
-	// This is done for compatibility with the existing Lithne library.
-	// The data transfered to and from the main processor by the main program loop.
-	uart_start_interrupt(&USART_XBEE);
-	
-//	serialCo2MainXbee.begin(115200);
-//	serialCo2MainSerial.begin(115200);
-	//lithneProgrammer.init(&serialCo2MainSerial);
-	
-	//Lithne.begin(115200, serialCo2Xbee);
-	//Lithne.addNode( REMOTE, XBeeAddress64(0x00,0x0000FFFF) );         // Broadcast by default
-	
-	// The main loop manages only the power mode
-	// because the USB management is done by interrupt
+	lithneProgrammer.init(&serialCo2MainSerial);
+			
 	while (true) {
-		if(!lithneProgrammer.busyProgramming()){
-			xbeeDirect = xbeeDirectNew;
-		}		
-		if(xbeeDirect){
-			// xbee is directly forwarded by interrupts, do nothing
-		}
-		
-		debugMessage("\r\nxbeeDirect = %d\r\n", xbeeDirect);
-		
+					
 		printfToPort_P(0, PSTR("Free ram: %d\r\n"), freeRam());
+				
 		delay_ms(1000);
-
-		if ( Lithne.available() ){
-			// Only process messages inside the proramming scope
+		continue;
+		
+		if (0){// Lithne.available() ){
+			// Only process messages inside the programming scope
 			if ( Lithne.getScope() == lithneProgrammingScope ){
 				lithneProgrammer.updateRemoteAddress();
 			}
@@ -181,9 +165,22 @@ int main(void)
 void main_cdc_rx_notify(uint8_t port){
 	// Byte received on USB on port in argument
 	ui_com_rx_notify(port);
-	while(udi_cdc_multi_is_rx_ready(port)){
-		int c = udi_cdc_multi_getc(port);			
-		usart_putchar(main_port_to_usart(port), c);
+	switch(port){
+		case 0:
+			// send directly to serial port
+			while(udi_cdc_multi_is_rx_ready(port)){
+				int c = udi_cdc_multi_getc(port);
+				usart_putchar(&USART_COMM0, c);
+			}
+			break;
+		case 1:
+			while(udi_cdc_multi_is_rx_ready(port)){
+				int c = udi_cdc_multi_getc(port);
+				usart_putchar(&USART_XBEE, c);
+			}
+			break;
+		default:
+			return; // unknown port, do nothing
 	}
 }
 
@@ -218,23 +215,12 @@ void main_cdc_disable(uint8_t port)
 
 void main_cdc_config(uint8_t port, usb_cdc_line_coding_t * cfg)
 {
-	// Serial settings received from USB
-	USART_t * usart = main_port_to_usart(port);
-	
-	if(usart == NULL){
-		return;
-	}
-	//if(port  == 0){
-		uart_config(usart, cfg);
-	//}
 	switch(port){
 		case 0: // COMM0
-			uart_config(&USART_COMM0); 			
+			uart_config(&USART_COMM0, cfg);
 		break;
-		case 1: // XBEE direct
-			uart_config(&USART_XBEE);
-		break;
-		case 2: // XBEE spy/debug
+		case 1: // XBEE direct TODO
+			uart_config(&USART_XBEE, cfg);
 		break;
 	}
 }
@@ -254,6 +240,9 @@ void main_cdc_set_dtr(uint8_t port, bool b_enable)
 	}
 }
 
+bool main_cdc_is_open(uint8_t port){
+	return main_port_open & (1 << port);
+}
 
 void main_cdc_open(uint8_t port)
 {
@@ -261,18 +250,18 @@ void main_cdc_open(uint8_t port)
 		case 0: // COMM0
 			lithneProgrammer.resetMain();
 			uart_open(&USART_COMM0);
-			uart_start_interrupt(&USART_COMM0);
-			printfToPort_P(0, PSTR("Connected to main processor Serial\r\n"));
+			
+			usart_set_rx_interrupt_level(&USART_COMM0, USART_INT_LVL_HI); // receive interrupt
+			//usart_set_dre_interrupt_level(&USART_COMM0, USART_INT_LVL_HI); // data register empty interrupt
+			
+			//printfToPort_P(0, PSTR("Connected to main processor Serial\r\n"));
 		break;
-		case 1: // XBEE direct
-			xbeeDirectNew = true;
-			lithneProgrammer.setMainReset(true); // hold main processor in reset while communicating with serial directly
-			lithneProgrammer.resetXbee();
-			uart_stop_interrupt(&USART_COMM1); // stop communication with main processor on COMM1
-			uart_close(&USART_COMM1);
+		case 1: // Switched to XBEE direct: close COMM1
+			uart_close(&USART_COMM1); // close COMM1, this also disables interrupts						
+			
+			usart_set_rx_interrupt_level(&USART_XBEE, USART_INT_LVL_HI);					
+			//usart_set_dre_interrupt_level(&USART_XBEE, USART_INT_LVL_HI);					
 			// printfToPort_P(1, PSTR("XBEE disconnected from main processor, now directly talking to XBEE\r\n"));
-		break;
-		case 2: // XBEE spy/debug
 		break;						
 	}
 }
@@ -281,35 +270,13 @@ void main_cdc_close(uint8_t port)
 {
 	switch(port){
 		case 0: // COMM0		
-			uart_stop_interrupt(&USART_COMM0);
-			uart_close(&USART_COMM0);
+			uart_close(&USART_COMM0); // close COMM0, this also disables interrupts
 		break;
-		case 1: // XBEE direct
-			xbeeDirectNew = false;
-			lithneProgrammer.setMainReset(false); // release main processor from reset
+		case 1: // Switch back to XBEE forwarding/programming, open COMM1
 			uart_open(&USART_COMM1); // restore communication with main processor on COMM1
-			uart_start_interrupt(&USART_COMM1);
-		break;
-		case 2: // XBEE spy/debug
+			usart_set_rx_interrupt_level(&USART_COMM1, USART_INT_LVL_HI);
 		break;
 	}
-}
-
-USART_t * main_port_to_usart(uint8_t port)
-{
-	USART_t * usart = NULL;
-	switch(port){
-		case 0:
-		usart = &USART_COMM0;
-		break;
-		case 1:
-		usart = &USART_XBEE;
-		break;
-		case 2:
-		usart = &USART_COMM1;
-		break;
-	}
-	return usart;
 }
 
 int freeRam () {
@@ -385,3 +352,10 @@ int freeRam () {
  *       - conf_foo.h   configuration of each module
  *       - ui.c        implement of user's interface (leds,buttons...)
  */
+
+ISR(BADISR_vect){
+	ioport_set_pin_level(C_DEBUGLED, true);
+	delay_ms(50);
+	ioport_set_pin_level(C_DEBUGLED, false);
+	delay_ms(50);
+};

@@ -64,12 +64,12 @@ void ui_wakeup(void)
 
 void ui_com_open(uint8_t port)
 {
-	debugMessage("Host connected to PORT %d", port);	
+
 }
 
 void ui_com_close(uint8_t port)
 {
-	debugMessage("Host disconnected from PORT %d", port);	
+
 }
 
 void ui_com_rx_start(void)

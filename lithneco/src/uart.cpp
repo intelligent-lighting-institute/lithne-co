@@ -23,22 +23,9 @@ extern "C"{
 // when xbeeDirect is true, the xbee serial port is disconnected from the main processor and connected to USB
 extern volatile bool xbeeDirect;
 
-void uart_start_interrupt(USART_t * usart)
-{
-	// Enable interrupt with priority higher than USB
-	usart_set_dre_interrupt_level(usart, USART_INT_LVL_HI);
-	usart_set_rx_interrupt_level(usart, USART_INT_LVL_HI);
-}
-
-void uart_stop_interrupt(USART_t * usart)
-{
-	// Disable interrupts set by uart_start_interrupt()
-	usart_set_dre_interrupt_level(usart, USART_INT_LVL_HI);
-	usart_set_rx_interrupt_level(usart, USART_INT_LVL_HI);
-}
-
 void uart_open(USART_t * usart)
 {
+	uart_config(usart); // set to default settings
 	sysclk_enable_peripheral_clock(usart);
 	usart_tx_enable(usart);
 	usart_rx_enable(usart);
@@ -52,8 +39,6 @@ void uart_close(USART_t * usart)
 	// Close RS232 communication
 	usart->CTRLB = 0;
 }
-
-
 
 void uart_config(USART_t * usart, usb_cdc_line_coding_t * cfg)
 {
@@ -149,13 +134,14 @@ ISR(USART_COMM0_RX_Vect)
 	}
 
 	// Transfer UART RX fifo to CDC TX
-	val = usart_get(&USART_COMM0);
+	val = USART_COMM0.DATA;
 	
 	if (!udi_cdc_multi_is_tx_ready(0)) {
 		// Fifo full
 		udi_cdc_multi_signal_overrun(0);
 		ui_com_overflow();
-		}else{
+		}
+	else{
 		udi_cdc_multi_putc(0, val);
 	}
 	ui_com_tx_stop();
@@ -167,8 +153,9 @@ ISR(USART_COMM0_DRE_Vect)
 	if (udi_cdc_multi_is_rx_ready(0)) {
 		// Transmit next data
 		ui_com_rx_start();
-		usart_put(&USART_COMM0, udi_cdc_multi_getc(0));
-		} else {
+		USART_COMM0.DATA = udi_cdc_multi_getc(0);
+	}
+	else {
 		// Fifo empty then Stop UART transmission
 		USART_COMM0.CTRLA = (register8_t) USART_RXCINTLVL_HI_gc |
 		(register8_t) USART_DREINTLVL_OFF_gc;
@@ -176,83 +163,69 @@ ISR(USART_COMM0_DRE_Vect)
 	}
 }
 
+// prototype for orignal Arduino ISR body
+void arduino_ISR_body_for_USARTC1_RXC_vect();
 
 // Interrupt vectors for COMM1
 ISR(USART_XBEE_RX_Vect)
 {
 	int val;
+	if(main_cdc_is_open(1)){ // xbee linked to USB
+		// send data received from XBEE straight to USB port 1
+		ui_com_tx_start();
 
-// Data received
-	ui_com_tx_start();
+		if (0 != (USART_XBEE.STATUS & (USART_FERR_bm | USART_BUFOVF_bm))) {
+			udi_cdc_multi_signal_framing_error(1);
+			ui_com_error();
+		}
 
-	if (0 != (USART_XBEE.STATUS & (USART_FERR_bm | USART_BUFOVF_bm))) {
-	udi_cdc_multi_signal_framing_error(1);
-		ui_com_error();
+		// Transfer UART RX fifo to CDC TX
+		val = USART_XBEE.DATA;
+		if (!udi_cdc_multi_is_tx_ready(1)) {
+			// Fifo full
+			udi_cdc_multi_signal_overrun(1);
+			ui_com_overflow();
+		}
+		else{
+			udi_cdc_multi_putc(1, val);
+		}
+		ui_com_tx_stop();
 	}
-
-	// Transfer UART RX fifo to CDC TX
-	val = USART_XBEE.DATA;
-	if (!udi_cdc_multi_is_tx_ready(1)) {
-		// Fifo full
-		udi_cdc_multi_signal_overrun(1);
-		ui_com_overflow();
-		}else{
-	udi_cdc_multi_putc(1, val);
+	else{
+		// place data in Arduino's serial rx buffer by using original arduino ISR
+		arduino_ISR_body_for_USARTC1_RXC_vect();	
 	}
-	ui_com_tx_stop();
 }
 
 ISR(USART_XBEE_DRE_Vect)
 {
 	// Data send
-	if (udi_cdc_multi_is_rx_ready(1)) {
-		// Transmit next data
-		ui_com_rx_start();
-		USART_XBEE.DATA = udi_cdc_multi_getc(1);
-		} else {
-		// Fifo empty then Stop UART transmission
-		USART_XBEE.CTRLA = (register8_t) USART_RXCINTLVL_HI_gc |
-		(register8_t) USART_DREINTLVL_OFF_gc;
-		ui_com_rx_stop();
+	if(main_cdc_is_open(1)){
+		if (udi_cdc_multi_is_rx_ready(1)) {
+			// Transmit next data
+			ui_com_rx_start();
+			USART_XBEE.DATA = udi_cdc_multi_getc(1);
+			return; // return, keep DRE interrupt enabled
+		}
 	}
+	// Fifo empty, stop UART transmission
+	usart_set_dre_interrupt_level(&USART_XBEE, USART_INT_LVL_OFF);
+	ui_com_rx_stop();
 }
+
+// prototype for original Arduino ISR body
+void arduino_ISR_body_for_USARTE0_RXC_vect();
 
 // Interrupt vectors for COMM1
 ISR(USART_COMM1_RX_Vect)
 {
-	int val;
-
-	// Data received
-	ui_com_tx_start();
-
-	if (0 != (USART_COMM1.STATUS & (USART_FERR_bm | USART_BUFOVF_bm))) {
-		udi_cdc_multi_signal_framing_error(2);
-		ui_com_error();
-	}
-
-	// Transfer UART RX fifo to CDC TX
-	val = USART_COMM1.DATA;
-	if (!udi_cdc_multi_is_tx_ready(2)) {
-		// Fifo full
-		udi_cdc_multi_signal_overrun(2);
-		ui_com_overflow();
-		}else{
-		udi_cdc_multi_putc(2, val);
-	}
-	ui_com_tx_stop();
+	// place data in Arduino's serial rx buffer by using original arduino ISR
+	arduino_ISR_body_for_USARTE0_RXC_vect();
 }
 
 ISR(USART_COMM1_DRE_Vect)
 {
-	// Data send
-	if (udi_cdc_multi_is_rx_ready(2)) {
-		// Transmit next data
-		ui_com_rx_start();
-		USART_COMM1.DATA = udi_cdc_multi_getc(2);
-		} else {
-		// Fifo empty then Stop UART transmission
-		USART_COMM1.CTRLA = (register8_t) USART_RXCINTLVL_HI_gc |
-		(register8_t) USART_DREINTLVL_OFF_gc;
-		ui_com_rx_stop();
-	}
+	// This interrupt should not be enabled. Turn it off again. http://www.youtube.com/watch?v=Z86V_ICUCD4
+	// this will keep going back into interrupt when no new data is send in this interrupt.
+	usart_set_dre_interrupt_level(&USART_COMM1, USART_INT_LVL_OFF);
 }

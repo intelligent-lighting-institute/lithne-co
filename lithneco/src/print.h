@@ -11,7 +11,7 @@
 
 #include <progmem.h>
 
-#define DEBUG_PORT 2 // COM port 2 is used for debug messages from the co-processor
+#define DEBUG_PORT 0 // send debug messages to main serial port
 #define PRINT_BUFFER_SIZE 256 // A debug message is maximally 256 bytes
 
 #define debugMessage(string, ...) printfToPort_P(DEBUG_PORT, PSTR(string), ##__VA_ARGS__)

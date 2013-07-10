@@ -24,6 +24,8 @@
 #include "LithneDefinitions.h"
 */
 
+#define MAX_NODES 1
+
 #if defined(ARDUINO) && ARDUINO >= 100
 	#define ARDUINO1DOT0 true
 #else

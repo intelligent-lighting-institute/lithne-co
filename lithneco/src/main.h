@@ -95,9 +95,8 @@ void main_cdc_open(uint8_t port);
 
 void main_cdc_close(uint8_t port);
 
-/*! \brief Returns a USART pointer to a hardware USART based on the USB port number
- */
-USART_t * main_port_to_usart(uint8_t port);
+bool main_cdc_is_open(uint8_t port);
+
 
 int freeRam (void);
 

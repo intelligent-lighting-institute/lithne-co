@@ -54,7 +54,7 @@ extern "C"{
 // These are already defined in uart.cpp
 #pragma push_macro("ISR")
 #undef ISR
-#define ISR(_vector) void removed_ISR_for##_vector(void)
+#define ISR(_vector) void arduino_ISR_body_for_##_vector(void)
 #include <HardwareSerial.cpp>
 #undef ISR
 #pragma pop_macro("ISR")

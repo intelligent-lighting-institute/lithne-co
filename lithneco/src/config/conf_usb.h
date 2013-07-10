@@ -117,8 +117,7 @@
 //! Define 3 USB communication ports
 //! 0 = COMM0: transparent to main processor serial
 //! 1 = XBEE Direct (disconnects XBEE from the main processor)
-//! 2 = Xbee Spy: receive debug messages and spy on xbee packets
-#define  UDI_CDC_PORT_NB 3
+#define  UDI_CDC_PORT_NB 2
 
 //! Interface callback definition
 #define  UDI_CDC_ENABLE_EXT(port)         main_cdc_enable(port)
