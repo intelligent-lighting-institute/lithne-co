@@ -31,15 +31,6 @@
 #include "Message.h"
 #include "Node.h"
 #include "LithneDefinitions.h"
-
-/*************************** MAX_NODES
-Define the number of nodes that are created
-- Note that no more than MAX_NODES can be added through the AddNode() function
-Default is 20
-**/
-#ifndef MAX_NODES
-	#define MAX_NODES 20
-#endif
 	
 class LithneClass
 {
@@ -180,7 +171,7 @@ class LithneClass
 	void readXbee ();
 	
 	public:
-
+	
 	/* Define objects */
 	static XBee xbee;
 	static ZBRxResponse rx;
@@ -188,7 +179,7 @@ class LithneClass
 	static ZBTxStatusResponse txStatus;
 	static ModemStatusResponse msr;
 	static RemoteAtCommandResponse rATcmd;
-
+	
 //	Message * incomingMessage;
 //	Message * outgoingMessage;
 };

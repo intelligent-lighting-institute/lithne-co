@@ -123,7 +123,7 @@ int main(void)
 		
 		printfToPort_P(0, PSTR("Free ram: %d\r\n"), freeRam());
 		delay_ms(1000);
-
+				
 		if ( Lithne.available() ){
 			// Only process messages inside the proramming scope
 			if ( Lithne.getScope() == lithneProgrammingScope ){

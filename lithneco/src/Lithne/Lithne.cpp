@@ -48,7 +48,6 @@ uint8_t atDB[]		=	{'D','B'};
 
 /*	uint16_t	*/
 uint16_t scopes[MAX_SCOPES]	=	{0};	//Stores the HASH conversions of the groups the node belongs to
-uint16_t numNodes			=	0;		//Contains the number of nodes in storage
 uint16_t last16B			=	0xFFFE;	//Stores the last 16-bit address we send a message to.
 uint16_t myAddress16		=	0xFFFE;	//Stores own 16-bit address.
 uint16_t myPANid			=	0;		//Stores the PAN ID of the network
@@ -59,9 +58,9 @@ XBeeAddress64	last64B			=	XBeeAddress64( 0x0, 0xFFFF);	//Stores the last 64-bit 
 XBeeAddress64	myAddress64		=	XBeeAddress64( 0x0, 0xFFFF);
 
 
+/* keep a list of xbee nodes */
+NodeList nodes;	
 
-/* Create a pointer to an array of nodes with length MAX_NODES */
-Node * nodes[MAX_NODES]			=	{0};
 /* allocate static variables */
 	
 Message LithneClass::incomingMessage;
@@ -86,11 +85,6 @@ RemoteAtCommandResponse LithneClass::rATcmd;
 **/
 LithneClass::LithneClass()
 {
-	for( uint8_t i=0; i<MAX_NODES; i++ )
-	{
-		nodes[i]	=	0;		//Node();
-	}
-	
 //	for( uint8_t i; i<MAX_SCOPES; i++ )
 //	{
 //		scopes[i]	=	0;
@@ -608,95 +602,9 @@ bool LithneClass::available()
 	If succesful, return true, otherwise return false.	**/
 bool LithneClass::addNode( uint8_t _id, XBeeAddress64 _addr64, uint16_t _addr16 )
 {
-	/*	If we have not passed the maximum number of nodes	*/
-	if( numNodes < MAX_NODES && 
-		!nodeKnown( _id ) && 
-		!nodeKnown64( _addr64)	)
-	{
-		nodes[numNodes] = new Node( _id, _addr64, _addr16 );
-		numNodes++;
-		return true;	//Return true, because we have succesfully added a node
-	}
-	else
-	{
-		return false;	//If we can't add a new node, return false
-	}
+	return nodeList.addNode(  uint8_t _id, XBeeAddress64 _addr64, uint16_t _addr16 );
 }
 
-/**	Checks whether there is a node with the specified ID in the memory	**/
-bool LithneClass::nodeKnown( uint8_t _id )
-{
-	/*	getNodeByID returns the node with the specific identifier, or a new
-		node with unknown data (id and address). If this is the case, the
-		node is thus not known. Otherwise, it is known	*/
-	if( getNodeByID( _id ) == NULL )
-	{
-		return false;
-	}
-	else
-	{
-		return true;
-	}
-}
-/** Checks whether the node with the specified 64-bit address exists in the nodes[]. **/
-bool LithneClass::nodeKnown64( XBeeAddress64 _addr64 )
-{
-	if( getNodeBy64( _addr64 ) == NULL )
-	{
-		return false;
-	}
-	else
-	{
-		return true;
-	}
-	
-	/*	!!! CODE REPLACED, UNTESTED
-	for( int i=0; i<numNodes; i++)
-	{
-	/** For each of the know nodes, check if the MSB and LSB
-		are similar to the specified address in add64. **=
-		if( _addr64.getMsb() == nodes[i]->getMSB() 
-		&&  _addr64.getLsb() == nodes[i]->getLSB() )
-		{
-			return true;
-			break;
-		}
-	}
-	
-	return false;
-	*/
-}
-/** Checks whether the node with the specified 16-bit address exists in the nodes[]. **/
-bool LithneClass::nodeKnown16( uint16_t _addr16 )
-{
-	if( getNodeBy16( _addr16 ) == NULL )
-	{
-		return false;
-	}
-	else
-	{
-		return true;
-	}
-	
-	/*	!!! CODE REPLACED, UNTESTED
-	bool known	=	false;
-		
-	for( int i=0; i<numNodes; i++)
-	{
-		Node * curNode	=	getNode( i );
-		
-		if( curNode->getAddress16() == _addr16 )
-		{
-		/** For each of the know nodes, check if the 16-bit address is 
-			similar to the specified address in _addr16. **
-			known	=	true;
-			break;
-		}
-	}
-	
-	return known;
-	*/
-}
 
 /** Check if a new DB measurement is available for a particular node (identified by Node ID) **/
 bool LithneClass::newDBMeasurement( uint8_t _id )
@@ -1301,7 +1209,7 @@ if (xbee.getResponse().isAvailable()) //Returns a reference to the current respo
      	newMessage = true; // set flag
      	
      	/* Clear the old received message */
-	incomingMessage.clearArguments();
+     	incomingMessage.clearArguments();
      	
      	xbee.getResponse().getZBRxResponse(rx);
      	
@@ -1316,17 +1224,17 @@ if (xbee.getResponse().isAvailable()) //Returns a reference to the current respo
 			addr64 = XBeeAddress64(0x0, 0x0);
 		}
      	
-	incomingMessage.setSender( addr16, addr64 );
+     	incomingMessage.setSender( addr16, addr64 );
      	 
      	/*	The scope of the message is stored in the first two bytes
      		of the payload.	Here we retrieve this and write it to the
      		incoming message	*/
-	incomingMessage.setScope( (rx.getData(Message::SCOPE_MSB) << 8) + rx.getData(Message::SCOPE_LSB) );
+     	incomingMessage.setScope( (rx.getData(Message::SCOPE_MSB) << 8) + rx.getData(Message::SCOPE_LSB) );
      	
 		/* 	The function identifier (1 byte) is stored in the third
 			byte of the payload. Here we retrieve this and write it to
 			the incoming message	*/
-	incomingMessage.setFunction((rx.getData(Message::FUNCTION_MSB) << 8) + rx.getData(Message::FUNCTION_LSB) );
+      	incomingMessage.setFunction((rx.getData(Message::FUNCTION_MSB) << 8) + rx.getData(Message::FUNCTION_LSB) );
 
       	/*	The remainder of the payload contains our arguments. Here
       		we retrieve the number of arguments, by subtracting the 
@@ -1339,7 +1247,7 @@ if (xbee.getResponse().isAvailable()) //Returns a reference to the current respo
     	for( uint16_t i = 0; i < numOfBytes; i++ )
       	{
     		uint16_t pos    =	i + Message::MSG_HEADER_SIZE;
-		incomingMessage.addByte( rx.getData(pos) );
+        	incomingMessage.addByte( rx.getData(pos) );
     	}
     	
     	/*	Here we always overwrite the 16-bit address. The received address 

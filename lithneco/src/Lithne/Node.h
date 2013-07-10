@@ -22,9 +22,7 @@
 class Node
 {
   public:
-	Node(	uint8_t _id = UNKNOWN_NODE_ID, 
-			XBeeAddress64 _add64 = XBeeAddress64( 0x00000000, 0x00000000 ), 
-			uint16_t = UNKNOWN_16B );
+	Node();
 	~Node();
 
 	void setID( uint8_t _id );
