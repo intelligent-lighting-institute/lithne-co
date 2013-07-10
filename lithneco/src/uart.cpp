@@ -147,22 +147,6 @@ ISR(USART_COMM0_RX_Vect)
 	ui_com_tx_stop();
 }
 
-ISR(USART_COMM0_DRE_Vect)
-{
-	// TX register empty, check USB for new data
-	if (udi_cdc_multi_is_rx_ready(0)) {
-		// Transmit next data
-		ui_com_rx_start();
-		USART_COMM0.DATA = udi_cdc_multi_getc(0);
-	}
-	else {
-		// Fifo empty then Stop UART transmission
-		USART_COMM0.CTRLA = (register8_t) USART_RXCINTLVL_HI_gc |
-		(register8_t) USART_DREINTLVL_OFF_gc;
-		ui_com_rx_stop();
-	}
-}
-
 // prototype for orignal Arduino ISR body
 void arduino_ISR_body_for_USARTC1_RXC_vect();
 
@@ -197,22 +181,6 @@ ISR(USART_XBEE_RX_Vect)
 	}
 }
 
-ISR(USART_XBEE_DRE_Vect)
-{
-	// Data send
-	if(main_cdc_is_open(1)){
-		if (udi_cdc_multi_is_rx_ready(1)) {
-			// Transmit next data
-			ui_com_rx_start();
-			USART_XBEE.DATA = udi_cdc_multi_getc(1);
-			return; // return, keep DRE interrupt enabled
-		}
-	}
-	// Fifo empty, stop UART transmission
-	usart_set_dre_interrupt_level(&USART_XBEE, USART_INT_LVL_OFF);
-	ui_com_rx_stop();
-}
-
 // prototype for original Arduino ISR body
 void arduino_ISR_body_for_USARTE0_RXC_vect();
 
@@ -221,11 +189,4 @@ ISR(USART_COMM1_RX_Vect)
 {
 	// place data in Arduino's serial rx buffer by using original arduino ISR
 	arduino_ISR_body_for_USARTE0_RXC_vect();
-}
-
-ISR(USART_COMM1_DRE_Vect)
-{
-	// This interrupt should not be enabled. Turn it off again. http://www.youtube.com/watch?v=Z86V_ICUCD4
-	// this will keep going back into interrupt when no new data is send in this interrupt.
-	usart_set_dre_interrupt_level(&USART_COMM1, USART_INT_LVL_OFF);
 }

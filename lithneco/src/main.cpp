@@ -250,18 +250,11 @@ void main_cdc_open(uint8_t port)
 		case 0: // COMM0
 			lithneProgrammer.resetMain();
 			uart_open(&USART_COMM0);
-			
 			usart_set_rx_interrupt_level(&USART_COMM0, USART_INT_LVL_HI); // receive interrupt
-			//usart_set_dre_interrupt_level(&USART_COMM0, USART_INT_LVL_HI); // data register empty interrupt
-			
-			//printfToPort_P(0, PSTR("Connected to main processor Serial\r\n"));
 		break;
 		case 1: // Switched to XBEE direct: close COMM1
 			uart_close(&USART_COMM1); // close COMM1, this also disables interrupts						
-			
 			usart_set_rx_interrupt_level(&USART_XBEE, USART_INT_LVL_HI);					
-			//usart_set_dre_interrupt_level(&USART_XBEE, USART_INT_LVL_HI);					
-			// printfToPort_P(1, PSTR("XBEE disconnected from main processor, now directly talking to XBEE\r\n"));
 		break;						
 	}
 }
