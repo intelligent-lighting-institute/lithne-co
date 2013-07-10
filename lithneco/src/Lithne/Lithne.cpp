@@ -59,21 +59,20 @@ XBeeAddress64	last64B			=	XBeeAddress64( 0x0, 0xFFFF);	//Stores the last 64-bit 
 XBeeAddress64	myAddress64		=	XBeeAddress64( 0x0, 0xFFFF);
 
 
-/* Define objects */
-XBee xbee 						=	XBee();
-ZBRxResponse rx 				=	ZBRxResponse();
-ZBTxRequest zbTx				= 	ZBTxRequest();
-ZBTxStatusResponse txStatus 	=	ZBTxStatusResponse();
-ModemStatusResponse msr 		=	ModemStatusResponse();
-RemoteAtCommandResponse rATcmd	=	RemoteAtCommandResponse();
 
 /* Create a pointer to an array of nodes with length MAX_NODES */
 Node * nodes[MAX_NODES]			=	{0};
+/* allocate static variables */
 	
-Message LithneClass::incomingMessageStatic;
-Message LithneClass::outgoingMessageStatic;
-Message * LithneClass::incomingMessage;
-Message * LithneClass::outgoingMessage;
+Message LithneClass::incomingMessage;
+Message LithneClass::outgoingMessage;
+
+XBee LithneClass::xbee;
+ZBRxResponse LithneClass::rx;
+ZBTxRequest LithneClass::zbTx;
+ZBTxStatusResponse LithneClass::txStatus;
+ModemStatusResponse LithneClass::msr;
+RemoteAtCommandResponse LithneClass::rATcmd;
 
 /* 
   ___ ___  _  _ ___ _____ ___ _   _  ___ _____ ___  ___  ___ 
@@ -91,9 +90,6 @@ LithneClass::LithneClass()
 	{
 		nodes[i]	=	0;		//Node();
 	}
-	
-	incomingMessage = &incomingMessageStatic;
-	outgoingMessage = &outgoingMessageStatic;
 	
 //	for( uint8_t i; i<MAX_SCOPES; i++ )
 //	{
@@ -151,13 +147,13 @@ void LithneClass::setSerial(HardwareSerial &_port )
 	**/
 void LithneClass::setFunction( String _function )
 {
-	outgoingMessage->setFunction( _function );
+	outgoingMessage.setFunction( _function );
 }
 
 /** Set the function to call in the outgoing message **/
 void LithneClass::setFunction( uint16_t _function )
 {
-	outgoingMessage->setFunction( _function );
+	outgoingMessage.setFunction( _function );
 }
 
 /** Set the address of the receiving XBee by using the ID (not the same as array position in the Nodes array!) 
@@ -171,8 +167,8 @@ void LithneClass::setRecipient( uint8_t _id )
 		write it to the outgoing message	*/
 	if (receivingNode != NULL)
 	{
-		outgoingMessage->setRecipient64( receivingNode->getAddress64() );
-		outgoingMessage->setRecipient16( receivingNode->getAddress16() );
+		outgoingMessage.setRecipient64( receivingNode->getAddress64() );
+		outgoingMessage.setRecipient16( receivingNode->getAddress16() );
 		// delete receivingNode;
 	}
 }
@@ -186,15 +182,15 @@ void LithneClass::setRecipient( XBeeAddress64 _add64 )
 		write it to the outgoing message	*/
 	if (receivingNode != NULL)
 	{
-		outgoingMessage->setRecipient64( _add64 );
-		outgoingMessage->setRecipient16( receivingNode->getAddress16() );
+		outgoingMessage.setRecipient64( _add64 );
+		outgoingMessage.setRecipient16( receivingNode->getAddress16() );
 	}
 }
 /* Deprecated private function to set the recipient using a pointer to a node
 void LithneClass::setRecipient( Node * _receivingNode )
 {
-	outgoingMessage->setRecipient64 ( _receivingNode->getAddress64() );
-	outgoingMessage->setRecipient16 ( _receivingNode->getAddress16() );
+	outgoingMessage.setRecipient64 ( _receivingNode->getAddress64() );
+	outgoingMessage.setRecipient16 ( _receivingNode->getAddress16() );
 }*/
 
 /**	Sets the receipient of the outgoing message using the 16 bit address **/
@@ -207,21 +203,21 @@ void LithneClass::setRecipient16( uint16_t _add16 )
 		write it to the outgoing message	*/
 	if (receivingNode != NULL)
 	{
-		outgoingMessage->setRecipient64( receivingNode->getAddress64() );
-		outgoingMessage->setRecipient16( _add16 );
+		outgoingMessage.setRecipient64( receivingNode->getAddress64() );
+		outgoingMessage.setRecipient16( _add16 );
 	}
 }
 
 /** Add an argument to the outgoing message **/
 void LithneClass::addArgument( uint16_t _arg )
 {
-	outgoingMessage->addArgument( _arg );
+	outgoingMessage.addArgument( _arg );
 }
 
 /** Set the String argument for the outgoingMessage. The string can be retrieved on the other end using getStringArgument()  **/ 
 void LithneClass::setStringArgument( String _arg )
 {
-	outgoingMessage->setStringArgument( _arg );
+	outgoingMessage.setStringArgument( _arg );
 }
 
 /** Sends a string to the specified node **/
@@ -264,11 +260,11 @@ void LithneClass::println( Node * _node, String _stringArg )
 	
 	if (_node != NULL)
 	{
-		outgoingMessage->setRecipient64( _node->getAddress64() );
-		outgoingMessage->setRecipient16( _node->getAddress16() );
-		outgoingMessage->setFunction( F_PRINTLN );
-		outgoingMessage->setScope( NO_SCOPE );
-		outgoingMessage->setStringArgument( _stringArg );
+		outgoingMessage.setRecipient64( _node->getAddress64() );
+		outgoingMessage.setRecipient16( _node->getAddress16() );
+		outgoingMessage.setFunction( F_PRINTLN );
+		outgoingMessage.setScope( NO_SCOPE );
+		outgoingMessage.setStringArgument( _stringArg );
 		send();
 	}
 }
@@ -277,13 +273,13 @@ void LithneClass::println( Node * _node, String _stringArg )
 /** Transmit the outgoing message, use setRecipient and setFunction before calling this function  **/
 void LithneClass::send( )
 {
-	sendMessage( outgoingMessage );
+	sendMessage( &outgoingMessage );
 	/* After transmitting the message, we immediately clear the arguments */
-	outgoingMessage->clearArguments();
+	outgoingMessage.clearArguments();
 	/*	After transmitting the message we set the scope to NO_SCOPE, so 
 		our next message is always received by any other node (unless we specify
 		a scope again)	*/
-	outgoingMessage->setScope( NO_SCOPE );
+	outgoingMessage.setScope( NO_SCOPE );
 }
 /**	Transmit outgoing message with the specified recipient by 64 bit address and function **/
 void LithneClass::send( XBeeAddress64 recipient, uint8_t function )
@@ -539,7 +535,7 @@ void LithneClass::getMyInfo()
 /**	Sets the hash code of the group (scope) to the outgoing message	**/
 void LithneClass::setScope( uint16_t _scope )
 {
-	outgoingMessage->setScope( _scope );
+	outgoingMessage.setScope( _scope );
 }
 /** Sets the hash code of the group (scope) to the outgoing message using a string **/
 void LithneClass::setScope( String _scope )
@@ -799,25 +795,25 @@ uint8_t	LithneClass::pwmPin( uint8_t position )
 /** Returns a pointer to the incoming message **/
 Message * LithneClass::getIncomingMessage()
 {
-	return incomingMessage;
+	return &incomingMessage;
 }
 /** Returns a pointer to the incoming message **/
 Message * LithneClass::getOutgoingMessage()
 {
-	return outgoingMessage;
+	return &outgoingMessage;
 }
 
 /** Returns the number of arguments in the incoming message **/
 uint8_t LithneClass::getNumberOfArguments()
 {
-	return incomingMessage->getNumberOfArguments();
+	return incomingMessage.getNumberOfArguments();
 }
 /**  functionIs returns true if the function of the incoming message is the same as the function that is provided as an argument to this function.
 	Internally, this function compares a hash() of the provided argument with the internally stored function ID inetger.
 */
 bool LithneClass::functionIs( String _func )
 {
-	return incomingMessage->functionIs( _func );
+	return incomingMessage.functionIs( _func );
 }
 
 /** Returns the number of nodes currently known **/
@@ -904,19 +900,19 @@ uint8_t LithneClass::setNodeAddress( XBeeAddress64 _add64, uint16_t _add16 )
 /** Returns the function ID of the incoming message **/
 uint16_t LithneClass::getFunction()
 {
-	return incomingMessage->getFunction();
+	return incomingMessage.getFunction();
 }
 
 /**	Return the scope of the incoming message. The scope is an integer used to define for whom the message is intended **/
 uint16_t LithneClass::getScope()
 {
-	return incomingMessage->getScope();
+	return incomingMessage.getScope();
 }
 
 /** Return the int argument at the specified position **/
 uint16_t LithneClass::getArgument( uint8_t arg )
 {
-	return incomingMessage->getArgument(arg);
+	return incomingMessage.getArgument(arg);
 }
 
 /** Returns the content of the incoming message as a String. 
@@ -924,7 +920,7 @@ uint16_t LithneClass::getArgument( uint8_t arg )
 **/
 String LithneClass::getStringArgument( )
 {
-	return incomingMessage->getStringArgument();
+	return incomingMessage.getStringArgument();
 }
 
 /* 	DEPRECATED. Retrieve the address by using getNode()
@@ -1037,7 +1033,7 @@ uint16_t LithneClass::hash( String _group )
 /**	Returns the 16-bit address of the sender as stored in the message	**/
 uint16_t LithneClass::getSender16()
 {
-	return incomingMessage->getSender16();
+	return incomingMessage.getSender16();
 }
 
 /**	Sends an ATCommand and returns the response as a 32-bit integer.
@@ -1121,7 +1117,7 @@ __  _____            _      _    _                 __ _ _
 /** Return the address of the sender of the message **/
 XBeeAddress64 LithneClass::getSender64()
 {
-	return incomingMessage->getSender64();
+	return incomingMessage.getSender64();
 }
 
 /* DEPRECATED. Use getNodeByID(id)->getAddress64() instead.
@@ -1305,7 +1301,7 @@ if (xbee.getResponse().isAvailable()) //Returns a reference to the current respo
      	newMessage = true; // set flag
      	
      	/* Clear the old received message */
-     	incomingMessage->clearArguments();
+	incomingMessage.clearArguments();
      	
      	xbee.getResponse().getZBRxResponse(rx);
      	
@@ -1320,17 +1316,17 @@ if (xbee.getResponse().isAvailable()) //Returns a reference to the current respo
 			addr64 = XBeeAddress64(0x0, 0x0);
 		}
      	
-     	incomingMessage->setSender( addr16, addr64 );
+	incomingMessage.setSender( addr16, addr64 );
      	 
      	/*	The scope of the message is stored in the first two bytes
      		of the payload.	Here we retrieve this and write it to the
      		incoming message	*/
-     	incomingMessage->setScope( (rx.getData(Message::SCOPE_MSB) << 8) + rx.getData(Message::SCOPE_LSB) );
+	incomingMessage.setScope( (rx.getData(Message::SCOPE_MSB) << 8) + rx.getData(Message::SCOPE_LSB) );
      	
 		/* 	The function identifier (1 byte) is stored in the third
 			byte of the payload. Here we retrieve this and write it to
 			the incoming message	*/
-      	incomingMessage->setFunction((rx.getData(Message::FUNCTION_MSB) << 8) + rx.getData(Message::FUNCTION_LSB) );
+	incomingMessage.setFunction((rx.getData(Message::FUNCTION_MSB) << 8) + rx.getData(Message::FUNCTION_LSB) );
 
       	/*	The remainder of the payload contains our arguments. Here
       		we retrieve the number of arguments, by subtracting the 
@@ -1343,7 +1339,7 @@ if (xbee.getResponse().isAvailable()) //Returns a reference to the current respo
     	for( uint16_t i = 0; i < numOfBytes; i++ )
       	{
     		uint16_t pos    =	i + Message::MSG_HEADER_SIZE;
-        	incomingMessage->addByte( rx.getData(pos) );
+		incomingMessage.addByte( rx.getData(pos) );
     	}
     	
     	/*	Here we always overwrite the 16-bit address. The received address 

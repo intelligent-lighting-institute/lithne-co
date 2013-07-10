@@ -72,11 +72,8 @@ class LithneClass
 	const static uint8_t	F_COLOR				=	004;	//Control the colour of the object
 	const static uint8_t	F_LIGHTPARAMETERS	=	005;	//Control all light parameters of the object*/
 	
-	static Message incomingMessageStatic;
-	static Message outgoingMessageStatic;
-	
-	static Message * incomingMessage;
-	static Message * outgoingMessage;
+	static Message incomingMessage;
+	static Message outgoingMessage;
 		
 	/*	Functions that return nothing	*/
 	void init( uint32_t _baud = 115200, HardwareSerial & port = Serial );
@@ -182,6 +179,16 @@ class LithneClass
 	
 	void readXbee ();
 	
+	public:
+
+	/* Define objects */
+	static XBee xbee;
+	static ZBRxResponse rx;
+	static ZBTxRequest zbTx;
+	static ZBTxStatusResponse txStatus;
+	static ModemStatusResponse msr;
+	static RemoteAtCommandResponse rATcmd;
+
 //	Message * incomingMessage;
 //	Message * outgoingMessage;
 };

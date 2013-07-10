@@ -47,8 +47,8 @@ extern "C"{
 #include <wiring.c>
 #include <wiring_digital.c>
 //#include <Stream.cpp>
-//#include <WString.cpp>
-//#include <WMath.cpp> // for Random function
+#include <WString.cpp>
+#include <WMath.cpp> // for Random function
 
 // Include HardwareSerial.cpp, but do not let it define interrupt service routines.
 // These are already defined in uart.cpp
