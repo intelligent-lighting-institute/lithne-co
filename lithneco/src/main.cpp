@@ -99,16 +99,20 @@ int main(void)
 	usart_set_rx_interrupt_level(&USART_COMM1, USART_INT_LVL_HI);
 	usart_set_rx_interrupt_level(&USART_XBEE, USART_INT_LVL_HI);
 	
+	
+	debugMessage("free memory before Lithne init\t%d", freeRam());	
+	
 	lithneProgrammer.init(&serialCo2MainSerial);
-			
+	Lithne.setSerial(serialCo2Xbee);
+	
+	debugMessage("free memory after Lithne init \t%d", freeRam());	
+	
 	while (true) {
-					
-		printfToPort_P(0, PSTR("Free ram: %d\r\n"), freeRam());
-				
-		delay_ms(1000);
-		continue;
-		
-		if (0){// Lithne.available() ){
+		if(main_cdc_is_open(1)){
+			// XBEE is directly linked to USB. Skip Lithne forwarding/programming
+			continue;
+		}	
+		if (Lithne.available() ){
 			// Only process messages inside the programming scope
 			if ( Lithne.getScope() == lithneProgrammingScope ){
 				lithneProgrammer.updateRemoteAddress();
@@ -159,6 +163,20 @@ int main(void)
 				serialCo2MainXbee.flush();
 			}
 		}
+		
+		// forward communication from main processor to xbee
+		if ( !lithneProgrammer.busyProgramming() && serialCo2MainXbee.available() )
+		{
+			uint8_t byte_to_pass_on = serialCo2MainXbee.read();
+			Lithne.sendBytePublic(byte_to_pass_on, false);
+			while (serialCo2MainXbee.available())
+			{
+				byte_to_pass_on = serialCo2MainXbee.read();
+				Lithne.sendBytePublic(byte_to_pass_on, true);
+			}
+		}		
+		
+		lithneProgrammer.preventHangup();
 	}
 }
 
