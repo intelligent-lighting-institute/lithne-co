@@ -35,18 +35,24 @@
 	#define F_CPU 32000000L
 #endif
 
-#include "compiler.h"
 #include <Arduino.h>
 extern "C"{
+
+	#include "compiler.h"
+	#include "millis.h" // alternative implementation for millis and delay
 	#include <pins_arduino.h>
 }
 
 
 #include <Print.cpp>
 #include <new.cpp>
-#include <wiring.c>
-#include <wiring_digital.c>
+//extern "C"{
+	//#include <wiring.c>
+	//#include <wiring_digital.c>
+//}
+
 //#include <Stream.cpp>
+
 #include <WString.cpp>
 #include <WMath.cpp> // for Random function
 
@@ -67,6 +73,8 @@ extern "C"{
 //#include <wiring_shift.c>
 //#include <IPAddress.cpp>
 //#include <Tone.cpp>
+
+#undef F_CPU
 
 // Restore original warnings configuration
 #pragma GCC diagnostic pop

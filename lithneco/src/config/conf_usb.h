@@ -51,6 +51,8 @@
  * USB Device Configuration
  * @{
  */
+#define UDD_NO_SLEEP_MGR
+
 
 //! Device definition (mandatory)
 #define  USB_DEVICE_VENDOR_ID             USB_VID_ATMEL
@@ -66,7 +68,7 @@
 
 //! USB Device string definitions (Optional)
 #define  USB_DEVICE_MANUFACTURE_NAME      "ATMEL ASF"
-#define  USB_DEVICE_PRODUCT_NAME          "3x CDC Virtual Com"
+#define  USB_DEVICE_PRODUCT_NAME          "2x CDC Virtual Com"
 // #define  USB_DEVICE_SERIAL_NAME           "12...EF"
 
 
@@ -90,8 +92,8 @@
  */
 #define  UDC_VBUS_EVENT(b_vbus_high)
 #define  UDC_SOF_EVENT()                  main_sof_action()
-#define  UDC_SUSPEND_EVENT()              main_suspend_action()
-#define  UDC_RESUME_EVENT()               main_resume_action()
+#define  UDC_SUSPEND_EVENT()              
+#define  UDC_RESUME_EVENT()               
 //! Mandatory when USB_DEVICE_ATTR authorizes remote wakeup feature
 // #define  UDC_REMOTEWAKEUP_ENABLE()        user_callback_remotewakeup_enable()
 // extern void user_callback_remotewakeup_enable(void);

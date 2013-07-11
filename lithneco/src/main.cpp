@@ -41,18 +41,24 @@
  *
  */
 
+#include "lithneProgrammer.h"
+#undef F_CPU
+
 extern "C"{
 	#include <asf.h>
 }
 
 #define MAX_NODES 1
 
-#include <Arduino.h>
 #include "conf_usb.h"
 #include "ui.h"
 #include "print.h"
 #include "uart.h"
-#include "lithneProgrammer.h"
+
+extern "C"{
+	#include "millis.h"
+}
+
 
 #include <Lithne/Lithne.h>
 
@@ -63,20 +69,21 @@ volatile uint8_t main_port_open;
  */
 int main(void)
 {
-	lithneProgrammer.setMainReset(true);
-	lithneProgrammer.setXbeeReset(true);
-	irq_initialize_vectors();
-	cpu_irq_enable();
-	delay_init();
-
-	// Initialize the sleep manager
-	sleepmgr_init();
-
-	sysclk_init();
+	
 	board_init();
 	ui_init();
-	ui_powerdown();
-
+		
+	lithneProgrammer.setMainReset(true);
+	lithneProgrammer.setXbeeReset(true);
+	
+	irq_initialize_vectors();
+	cpu_irq_enable();
+		
+	sysclk_init();
+	
+	delay_init(sysclk_get_cpu_hz());
+	millis_init();	
+	
 	// Start USB stack to authorize VBus monitoring
 	udc_start();
 	lithneProgrammer.setMainReset(false);
@@ -105,13 +112,18 @@ int main(void)
 	lithneProgrammer.init(&serialCo2MainSerial);
 	Lithne.setSerial(serialCo2Xbee);
 	
-	debugMessage("free memory after Lithne init \t%d", freeRam());	
-	
+	debugMessage("free memory after Lithne init \t%d", freeRam());
+		
 	while (true) {
 		if(main_cdc_is_open(1)){
 			// XBEE is directly linked to USB. Skip Lithne forwarding/programming
 			continue;
-		}	
+		}
+		if(millis()%1000 == 0){
+			char tempString[] =  "Millis: %ul";
+			printfToPort(0, true, tempString, millis());
+		}
+		//debugMessage("sys clock: %ul", sysclk_get_main_hz());
 		if (Lithne.available() ){
 			// Only process messages inside the programming scope
 			if ( Lithne.getScope() == lithneProgrammingScope ){
@@ -202,15 +214,6 @@ void main_cdc_rx_notify(uint8_t port){
 	}
 }
 
-void main_suspend_action(void)
-{
-	ui_powerdown();
-}
-
-void main_resume_action(void)
-{
-	ui_wakeup();
-}
 
 void main_sof_action(void)
 {

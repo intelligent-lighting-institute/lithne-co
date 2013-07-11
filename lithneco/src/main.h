@@ -97,7 +97,6 @@ void main_cdc_close(uint8_t port);
 
 bool main_cdc_is_open(uint8_t port);
 
-
 int freeRam (void);
 
 #endif // _MAIN_H_
