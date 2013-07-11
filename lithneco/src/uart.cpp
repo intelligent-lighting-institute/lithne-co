@@ -19,9 +19,7 @@ extern "C"{
 #include "ui.h"
 #include "print.h"
 #include <HardwareSerial.h>
-
-// when xbeeDirect is true, the xbee serial port is disconnected from the main processor and connected to USB
-extern volatile bool xbeeDirect;
+#include "lithneProgrammer.h"
 
 void uart_open(USART_t * usart)
 {
@@ -93,7 +91,7 @@ void uart_config(USART_t * usart, usb_cdc_line_coding_t * cfg)
 	usart->CTRLC = reg_ctrlc;
 	// Update baudrate
 	uart_set_baudrate(usart, cfg->dwDTERate);
-	// debugMessage("baud %lu", cfg->dwDTERate);
+	// debugMessage("baud %ul", cfg->dwDTERate);
 }
 
 void uart_set_baudrate(USART_t * usart, le32_t baud){
@@ -111,40 +109,40 @@ void uart_set_baudrate(USART_t * usart, le32_t baud){
 	}
 }
 
-
-// Defined in HardwareSerial.cpp:
-/*
-extern ring_buffer Serialrx_buffer; // COMM0 RX
-extern ring_buffer Serial1rx_buffer; // XBEE_RX
-extern ring_buffer Serial4rx_buffer; // COMM1 RX
-void store_char(unsigned char c, ring_buffer *rx_buffer);
-*/
+// prototype for orignal Arduino ISR body
+void arduino_ISR_body_for_USARTC0_RXC_vect();
 
 // Interrupt vectors for COMM0
 ISR(USART_COMM0_RX_Vect)
 {
-	int val;
+	if(!lithneProgrammer.busyProgramming()){
+		int val;
 
-	// Data received
-	ui_com_tx_start();
+		// Data received
+		ui_com_tx_start();
 
-	if (0 != (USART_COMM0.STATUS & (USART_FERR_bm | USART_BUFOVF_bm))) {
-		udi_cdc_multi_signal_framing_error(0);
-		ui_com_error();
-	}
-
-	// Transfer UART RX fifo to CDC TX
-	val = USART_COMM0.DATA;
-	
-	if (!udi_cdc_multi_is_tx_ready(0)) {
-		// Fifo full
-		udi_cdc_multi_signal_overrun(0);
-		ui_com_overflow();
+		if (0 != (USART_COMM0.STATUS & (USART_FERR_bm | USART_BUFOVF_bm))) {
+			udi_cdc_multi_signal_framing_error(0);
+			ui_com_error();
 		}
-	else{
-		udi_cdc_multi_putc(0, val);
+
+		// Transfer UART RX fifo to CDC TX
+		val = USART_COMM0.DATA;
+	
+		if (!udi_cdc_multi_is_tx_ready(0)) {
+			// Fifo full
+			udi_cdc_multi_signal_overrun(0);
+			ui_com_overflow();
+			}
+		else{
+			udi_cdc_multi_putc(0, val);
+		}
+		ui_com_tx_stop();
 	}
-	ui_com_tx_stop();
+	else{
+		// When programming, use the original arduino buffers
+		arduino_ISR_body_for_USARTC0_RXC_vect();		
+	}
 }
 
 // prototype for orignal Arduino ISR body

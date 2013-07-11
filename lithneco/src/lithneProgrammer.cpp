@@ -12,6 +12,8 @@
 #include "ioport.h"
 #include "user_board.h"
 #include "print.h"
+#include "uart.h"
+#include <asf.h>
 
 LithneProgrammer::LithneProgrammer(){
 	doneUploading  = false;
@@ -115,6 +117,12 @@ void LithneProgrammer::processKill(){
 void LithneProgrammer::program( bool firstPacket )
 {
 	programming = true;      // We are now in programming mode
+	// make sure main serial usart is open and configured at default settings.
+	uart_open(&USART_COMM0);
+	uart_config(&USART_COMM0);
+	// enable rx interrupt
+	usart_set_rx_interrupt_level(&USART_COMM0, USART_INT_LVL_HI);
+	progSerial->flush();
 	
 	if ( firstPacket )
 	{
@@ -124,7 +132,7 @@ void LithneProgrammer::program( bool firstPacket )
 		pageNumber       = 0;                                                            // Reset the number of the page we are working on
 		packetsIncoming  = (pbuff.getByte(0)*256) + pbuff.getByte(1);    // Get number of packets from the first two bytes of the first packet: Combine MSB and LSB
 		
-		debugMessage("Strat programming; Incoming Packets: %d", packetsIncoming);
+		debugMessage("Strat programming; Incoming Packets: %u", packetsIncoming);
 				
 		// We remove the first two bytes from the buffer as they dont contain program code, but the amount of incoming packets
 		pbuff.removeHeaderFromFirstPage();
@@ -179,7 +187,7 @@ void LithneProgrammer::program( bool firstPacket )
 	// If we expect more packets to be incoming than we have received so far - request next packet
 	if (packetsIncoming > packetsReceived)
 	{
-		debugMessage("RequestNxtPckt: \t %d", packetsReceived);
+		debugMessage("RequestNxtPckt: \t %u", packetsReceived);
 		debugMessage("From Remote (%x, %x): ", \
 			Lithne.getNodeByID( REMOTE )->getAddress64().getMsb(), \
 			Lithne.getNodeByID( REMOTE )->getAddress64().getLsb());
@@ -200,7 +208,7 @@ void LithneProgrammer::checkUploadProgress()
 	{
 		if (abs(millis()-lastPacketRequest) > (PROGRAM_TIMEOUT/2) )
 		{
-			debugMessage("TIMED PCK REQUEST: \t %d", packetsReceived);
+			debugMessage("TIMED PCK REQUEST: \t %d", (int) packetsReceived);
 			Lithne.setRecipient( REMOTE );
 			Lithne.setScope( lithneProgrammingScope );
 			Lithne.setFunction( fRequestNextPacket );
@@ -282,7 +290,7 @@ int LithneProgrammer::copyPage( int pageNum )
 		
 		programSucces = true;
 	}
-
+	delay_ms(100); // give the main processor some time
 	// If we've reached here, then current packet has been programmed properly onto the xmega256
 	// But please note: no sketch verification is done by this sketch!
 	return 1;
@@ -295,14 +303,14 @@ bool LithneProgrammer::busyProgramming(){
 void LithneProgrammer::resetMain(void)
 {
 	setMainReset(true);
-	delay_ms(10);
+	delay_ms(100);
 	setMainReset(false);
 }
 
 void LithneProgrammer::resetXbee(void)
 {
 	setXbeeReset(true);
-	delay_ms(10);
+	delay_ms(100);
 	setXbeeReset(false);
 }
 

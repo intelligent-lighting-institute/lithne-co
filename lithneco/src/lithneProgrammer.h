@@ -79,11 +79,10 @@ class LithneProgrammer{
 	PageBuffer pbuff;
 	NodeInfo nodeInfo;
 	
-	
 	unsigned long lastPacketTimer;   // Used to determine time-out
 	bool doneUploading;
 	bool programSucces;
-	bool programming;
+	volatile bool programming;
 	uint16_t packetsIncoming, packetsReceived;    // Keep track of the expected number of incoming packets and the number of packets received so far
 	uint16_t lastPacketRequest;		              // To keep track of our last request so we can request again if it takes too long
 	uint16_t pageNumber;                           // Keep track of the number of pages programmed

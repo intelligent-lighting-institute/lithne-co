@@ -119,10 +119,7 @@ int main(void)
 			// XBEE is directly linked to USB. Skip Lithne forwarding/programming
 			continue;
 		}
-		if(millis()%1000 == 0){
-			char tempString[] =  "Millis: %ul";
-			printfToPort(0, true, tempString, millis());
-		}
+		
 		//debugMessage("sys clock: %ul", sysclk_get_main_hz());
 		if (Lithne.available() ){
 			// Only process messages inside the programming scope
@@ -200,7 +197,9 @@ void main_cdc_rx_notify(uint8_t port){
 			// send directly to serial port
 			while(udi_cdc_multi_is_rx_ready(port)){
 				int c = udi_cdc_multi_getc(port);
-				usart_putchar(&USART_COMM0, c);
+				if(!lithneProgrammer.busyProgramming()){ // don't send anything to the serial port when the programmer is busy
+					usart_putchar(&USART_COMM0, c);
+				}
 			}
 			break;
 		case 1:

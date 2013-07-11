@@ -49,11 +49,9 @@ void NodeInfo::setFileName( String val )
 void NodeInfo::writeToEEPROM( uint8_t startAddress, String val )
 {
 	// Determine the size of the string to store
-	int valueSize = val.length();
-	debugMessage("\t Writing to EEPROM, StartAdd:\t%u,\tval:\t%s,\tlength:%u", \
-		startAddress, \
-		&val[0], \
-		valueSize);
+	int valueSize = val.length();	
+	
+	debugMessage("\t Writing to EEPROM");
 
 	for (int i = 0; i < valueSize; i++)
 	{
