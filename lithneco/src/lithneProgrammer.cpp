@@ -206,9 +206,11 @@ void LithneProgrammer::checkUploadProgress()
 {
 	if( programming )
 	{
-		if (millis()-lastPacketRequest > (PROGRAM_TIMEOUT/2) )
+		unsigned long timeSinceLastRequest = millis() - lastPacketRequest;
+		if (timeSinceLastRequest > (PROGRAM_TIMEOUT/2) )
 		{
 			debugMessage("TIMED PCK REQUEST: \t %u", packetsReceived);
+			debugMessage("Time since last request %lu", timeSinceLastRequest);
 			Lithne.setRecipient( REMOTE );
 			Lithne.setScope( lithneProgrammingScope );
 			Lithne.setFunction( fRequestNextPacket );

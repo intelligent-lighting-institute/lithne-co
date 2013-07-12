@@ -42,7 +42,7 @@ enum LithneProgrammer_function_numbers{
 };
 
 #define REMOTE 0                //  Use node at ID 0 as remote
-#define PROGRAM_TIMEOUT 3000     // Value determines the number of millis() after which the programming times out (no packs received)
+#define PROGRAM_TIMEOUT 3000u     // Value determines the number of millis() after which the programming times out (no packs received)
 static const uint16_t lithneProgrammingScope = 1737;
 
 
