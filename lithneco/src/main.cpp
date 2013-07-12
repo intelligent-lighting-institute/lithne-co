@@ -109,7 +109,7 @@ int main(void)
 	
 	debugMessage("free memory before Lithne init\t%d", freeRam());	
 	
-	lithneProgrammer.init(&serialCo2MainSerial);
+	lithneProgrammer.init(&USART_COMM0);
 	Lithne.setSerial(serialCo2Xbee);
 		
 	while (true) {

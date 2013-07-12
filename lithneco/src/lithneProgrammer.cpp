@@ -19,16 +19,17 @@ LithneProgrammer::LithneProgrammer(){
 	doneUploading  = false;
 	programSucces  = false;
 	programming    = false;	
-	lastPacketRequest = 0;
+	lastPacketRequestTime = 0;
 	pageNumber = 0;
+	oldInterruptSetting = 0;
 }
 	
 LithneProgrammer::~LithneProgrammer(){
 		
 }
 
-void LithneProgrammer::init(HardwareSerial * serialPtr){
-	progSerial = serialPtr;
+void LithneProgrammer::init(USART_t * usart){
+	progUsart = usart;
 	Lithne.addNode( REMOTE, XBeeAddress64(0x00,0x0000FFFF) );         // Broadcast by default
 }
 
@@ -116,14 +117,7 @@ void LithneProgrammer::processKill(){
 /* Processes the incoming packets */
 void LithneProgrammer::program( bool firstPacket )
 {
-	programming = true;      // We are now in programming mode
-	// make sure main serial usart is open and configured at default settings.
-	uart_open(&USART_COMM0);
-	uart_config(&USART_COMM0);
-	// enable rx interrupt
-	usart_set_rx_interrupt_level(&USART_COMM0, USART_INT_LVL_HI);
-	progSerial->flush();
-	
+	programming = true;      // We are now in programming mode				
 	if ( firstPacket )
 	{
 		doneUploading    = false;
@@ -131,6 +125,13 @@ void LithneProgrammer::program( bool firstPacket )
 		packetsReceived  = 0;
 		pageNumber       = 0;                                                            // Reset the number of the page we are working on
 		packetsIncoming  = (pbuff.getByte(0)*256) + pbuff.getByte(1);    // Get number of packets from the first two bytes of the first packet: Combine MSB and LSB
+		
+		// make sure main serial usart is open and configured at default settings.
+		uart_open(progUsart);
+		uart_config(progUsart);
+			
+		oldInterruptSetting = progUsart->CTRLA;
+		progUsart->CTRLA = 0; // disable all interrupts while programming.
 		
 		debugMessage("Strat programming; Incoming Packets: %u", packetsIncoming);
 				
@@ -149,18 +150,17 @@ void LithneProgrammer::program( bool firstPacket )
 		{
 			pbuff.add(0xff);
 		}
-		// We stop the programming
-		programming   = false;
+
 		doneUploading = true;
 		
-		// And let the programmer knuw that the upload is complete
+		// And let the programmer know that the upload is complete
 		Lithne.setRecipient( REMOTE );
 		Lithne.setScope( lithneProgrammingScope );
 		Lithne.setFunction( fUploadCompleted );
 		Lithne.send();
 	}
 	
-	// This happen every time the pageBuffer is full (every 8 packets)
+	// This happens every time the pageBuffer is full (every 8 packets)
 	if ( pbuff.getPos() >= pageSize )
 	{
 		debugMessage("Reached PageSize!");
@@ -197,7 +197,7 @@ void LithneProgrammer::program( bool firstPacket )
 		Lithne.setFunction( fRequestNextPacket );
 		Lithne.addArgument( packetsReceived );
 		Lithne.send();
-		lastPacketRequest = millis();
+		lastPacketRequestTime = millis();
 	}
 }
 
@@ -206,28 +206,28 @@ void LithneProgrammer::checkUploadProgress()
 {
 	if( programming )
 	{
-		unsigned long timeSinceLastRequest = millis() - lastPacketRequest;
+		unsigned long timeSinceLastRequest = millis() - lastPacketRequestTime;
 		if (timeSinceLastRequest > (PROGRAM_TIMEOUT/2) )
 		{
+			lastPacketRequestTime = millis();
 			debugMessage("TIMED PCK REQUEST: \t %u", packetsReceived);
-			debugMessage("Time since last request %lu", timeSinceLastRequest);
+			debugMessage("Time since last request %lu, millis: %lu", timeSinceLastRequest, millis());
 			Lithne.setRecipient( REMOTE );
 			Lithne.setScope( lithneProgrammingScope );
 			Lithne.setFunction( fRequestNextPacket );
 			Lithne.addArgument( packetsReceived );
 			Lithne.send();
-			lastPacketRequest = millis();
 		}
 	}
 }
 
 
 //   Reads byte(s) on serial port with a delay. We always expect this to be 0x0d during programming
-uint8_t LithneProgrammer::readByteWithDelay()
+/*uint8_t LithneProgrammer::readByteWithDelay()
 {                                  
 	delay(20);
-	return progSerial->read();
-}
+	return usart_getchar(progUsart);
+}*/
 
 /* Bits below based on Arduino Copier - An arduino sketch that can upload sketches to other boards, by George Caley. */
 int LithneProgrammer::copyPage( int pageNum )
@@ -237,26 +237,28 @@ int LithneProgrammer::copyPage( int pageNum )
 	{
 		resetMain();
 		
-		while (progSerial->available())
+		
+	/*	while (progSerial->available())
 		{               //   Clean up unwanted data that may be stored in Serial buffer, to prevent these bytes being read during readByteWithDelay()
 			responseByte = progSerial->read();
-		}
+		}*/
+		usart_get(progUsart); // discard existing bytes in serial buffer
 		
-		progSerial->write(0x54);                       //   Select device type = 0x7b
-		progSerial->write(0x7b);
+		usart_putchar(progUsart, 0x54);                       //   Select device type = 0x7b
+		usart_putchar(progUsart, 0x7b);
 
-		responseByte = readByteWithDelay();
+		responseByte = usart_getchar(progUsart);
 		if (responseByte != 0x0d) return 0;
 		
-		progSerial->write(0x50);                       //   Enter programming mode
-		responseByte = readByteWithDelay();
+		usart_putchar(progUsart, 0x50);                       //   Enter programming mode
+		responseByte = usart_getchar(progUsart);
 		if (responseByte != 0x0d) return 0;
 		
-		progSerial->write(0x41);                       //   Set Address (0x00, 0x00)
-		progSerial->write(byte(0x00));
-		progSerial->write(byte(0x00));
+		usart_putchar(progUsart, 0x41);                       //   Set Address (0x00, 0x00)
+		usart_putchar(progUsart, byte(0x00));
+		usart_putchar(progUsart, byte(0x00));
 
-		responseByte = readByteWithDelay();
+		responseByte = usart_getchar(progUsart);
 		if (responseByte != 0x0d) return 0;
 	}
 
@@ -264,35 +266,36 @@ int LithneProgrammer::copyPage( int pageNum )
 	// We pour blocks of data stored in buffer[], ready to write to the AVR's flash
 	// We only write in blocks of 512 bytes for the atXmega256.
 
-	progSerial->write(0x42);                       //   Write data into flash, address increment is done automatically
-	progSerial->write(0x02);
-	progSerial->write(byte(0x00));
-	progSerial->write(0x46);
+	usart_putchar(progUsart, 0x42);                       //   Write data into flash, address increment is done automatically
+	usart_putchar(progUsart, 0x02);
+	usart_putchar(progUsart, byte(0x00));
+	usart_putchar(progUsart, 0x46);
 	
 	for (uint16_t i = 0; i < pageSize; i++)
 	{
-		progSerial->write( pbuff.getByte(i) );
+		usart_putchar(progUsart,  pbuff.getByte(i) );
 	}
 
-	responseByte = readByteWithDelay();
+	responseByte = usart_getchar(progUsart);
 	if (responseByte != 0x0d) return 0;
 	
 	// If we are done uploading
 	if ( doneUploading == true )
 	{
-		progSerial->write(0x4c);                       //   Leave programming mode
-		responseByte = readByteWithDelay();
+		usart_putchar(progUsart, 0x4c);                       //   Leave programming mode
+		responseByte = usart_getchar(progUsart);
 		if (responseByte != 0x0d) return 0;
 		
-		progSerial->write(0x45);                       //   Exit bootloader
-		responseByte = readByteWithDelay();
+		usart_putchar(progUsart, 0x45);                       //   Exit bootloader
+		responseByte = usart_getchar(progUsart);
 		if (responseByte != 0x0d) return 0;
 		
 		resetMain();					//   Reset main processor
 		
 		programSucces = true;
+		programming = false;
+		progUsart->CTRLA = oldInterruptSetting;
 	}
-	delay_ms(100); // give the main processor some time
 	// If we've reached here, then current packet has been programmed properly onto the xmega256
 	// But please note: no sketch verification is done by this sketch!
 	return 1;
@@ -347,6 +350,9 @@ void LithneProgrammer::preventHangup(){
 		if ( millis()-lastPacketTimer > PROGRAM_TIMEOUT )
 		{
 			programming = false;
+			// restore original interrupt settings for serial port
+			progUsart->CTRLA = oldInterruptSetting;
+			
 			// reset the main proc in case we were in bootloader or something
 			resetMain();
 			Lithne.getNodeByID( REMOTE )->setAddress64( XBeeAddress64(0x00,0x00) );
