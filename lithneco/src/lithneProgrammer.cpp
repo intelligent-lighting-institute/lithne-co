@@ -17,7 +17,7 @@
 
 LithneProgrammer::LithneProgrammer(){
 	doneUploading  = false;
-	programSucces  = false;
+	//programSucces  = false;
 	programming    = false;	
 	lastPacketRequestTime = 0;
 	pageNumber = 0;
@@ -49,22 +49,47 @@ void LithneProgrammer::updateRemoteAddress(){
 void LithneProgrammer::processPacket(){
 	uint16_t dataLength = Lithne.getIncomingMessage()->getNumberOfBytes();   //   Returns number of bytes without Lithne header and footer
 	lastPacketTimer = millis();                                         //   set lastPacketTimer to current millis() so we don't time out
-	boolean firstPacket = false;
 	// The first programming packet is 2 bytes bigger than the normal 'packetSize'; this is how we determine the start of the programming sequence
 	// The two bytes contain the number of incoming packets that can be expected
-	if (dataLength > packetSize)
-	{
-		firstPacket      = true;
-		// We reset the pageBuffer as we are going to start filling it with new data
-		pbuff.reset();
-	}
-	// Add the incoming data to the page buffer
+
+	// Add the incoming data to the page buffer. Do this first, because stopProgrammer could reset the pagebuffer on error.
 	for(uint16_t i=0; i < dataLength; i++)                                   //   read data in xbeepacket and copy to buffer[] for processing
 	{
 		pbuff.add( Lithne.getIncomingMessage()->getByte(i) );
+	}	
+
+	
+	if (dataLength > packetSize)
+	{
+		programming = true;      // We are now in programming mode
+		
+		// We reset the pageBuffer as we are going to start filling it with new data
+		pbuff.reset();		
+		packetsReceived  = 0;
+		pageNumber       = 0;                                                            // Reset the number of the page we are working on
+		packetsIncoming  = (Lithne.getIncomingMessage()->getByte(0)*256 + Lithne.getIncomingMessage()->getByte(1));    // Get number of packets from the first two bytes of the first packet: Combine MSB and LSB
+			
+		// make sure main serial usart is open and configured at default settings.
+		oldInterruptSetting = progUsart->CTRLA;
+		progUsart->CTRLA = 0; // disable all interrupts while programming.
+		uart_open(progUsart); // open usart with default settings
+			
+		debugMessage("Start programming; Incoming Packets: %u", packetsIncoming);
+			
+		// We remove the first two bytes from the buffer as they don't contain program code, but the amount of incoming packets
+		pbuff.removeHeaderFromFirstPage();
+			
+		if(!startProgrammer()){
+			debugMessage("Could not succesfully configure programmer, aborting");
+			stopProgrammer();
+			return;
+		}
 	}
-	// Do the programming, let it know if this is the first packet or not
-	program( firstPacket );
+
+	// Do the programming, stop the programmer when an error has occurred.
+	if(!program()){
+		stopProgrammer();
+	}
 }
 
 void LithneProgrammer::processCheckin(){
@@ -115,80 +140,53 @@ void LithneProgrammer::processKill(){
 }
 
 /* Processes the incoming packets */
-void LithneProgrammer::program( bool firstPacket )
-{
-	programming = true;      // We are now in programming mode				
-	if ( firstPacket )
-	{
-		doneUploading    = false;
-		programSucces    = false;
-		packetsReceived  = 0;
-		pageNumber       = 0;                                                            // Reset the number of the page we are working on
-		packetsIncoming  = (pbuff.getByte(0)*256) + pbuff.getByte(1);    // Get number of packets from the first two bytes of the first packet: Combine MSB and LSB
-		
-		// make sure main serial usart is open and configured at default settings.
-		uart_open(progUsart);
-		uart_config(progUsart);
-			
-		oldInterruptSetting = progUsart->CTRLA;
-		progUsart->CTRLA = 0; // disable all interrupts while programming.
-		
-		debugMessage("Strat programming; Incoming Packets: %u", packetsIncoming);
-				
-		// We remove the first two bytes from the buffer as they dont contain program code, but the amount of incoming packets
-		pbuff.removeHeaderFromFirstPage();
-	}
-	
+bool LithneProgrammer::program(void)
+{	
 	// Keep track of the number of received packets
 	packetsReceived++;
 	
 	// If we receive the last packet, we fill up the buffer with 0x00, stop the programming (open up for other things) and send a message to the uploader
-	if ( packetsIncoming == packetsReceived )
+	if ( packetsReceived >= packetsIncoming)
 	{
 		// Fill in rest of page with 0xff
+		debugMessage("Received last packet");
 		while( pbuff.getPos() < pageSize )
 		{
 			pbuff.add(0xff);
 		}
-
-		doneUploading = true;
-		
-		// And let the programmer know that the upload is complete
-		Lithne.setRecipient( REMOTE );
-		Lithne.setScope( lithneProgrammingScope );
-		Lithne.setFunction( fUploadCompleted );
-		Lithne.send();
 	}
 	
 	// This happens every time the pageBuffer is full (every 8 packets)
 	if ( pbuff.getPos() >= pageSize )
 	{
-		debugMessage("Reached PageSize!");
+		debugMessage("Reached PageSize, copying to main processor");
 				
-		//   start copier - actually program the main proc
-		copyPage(pageNumber);
+		//   start copier - actually program the main processor
+		bool success = copyPage(pageNumber);
+	
 		pageNumber++;    // Keep track of the number of pages written so far. This is only used to determine the first page for reset
 		
 		// Reset the program packet buffer so we are able to receive the new stuff
 		pbuff.reset();
 		
-		//  If the upload is completed and programming succesful let the uploader know
-		//  Note that uploading success is different from programming success
-		if ( programSucces == true )
+		//  Request a new page if the page is copied successfully
+		if ( success == true )
 		{
 			Lithne.setRecipient( REMOTE );
 			Lithne.setScope( lithneProgrammingScope );
 			Lithne.setFunction( fCodeProgrammed );
 			Lithne.send();
-			programSucces = false;
 		}
+		else{
+			debugMessage("Error while programming");
+			return 0;
+		}			
 	}
-	
+		
 	// If we expect more packets to be incoming than we have received so far - request next packet
 	if (packetsIncoming > packetsReceived)
 	{
-		debugMessage("RequestNxtPckt: \t %u", packetsReceived);
-		debugMessage("From Remote (%lX, %lX): ", \
+		debugMessage("RequestNxtPckt: %u rom Remote (%lX, %lX)", packetsReceived, \
 			Lithne.getNodeByID( REMOTE )->getAddress64().getMsb(), \
 			Lithne.getNodeByID( REMOTE )->getAddress64().getLsb());
 		
@@ -199,6 +197,15 @@ void LithneProgrammer::program( bool firstPacket )
 		Lithne.send();
 		lastPacketRequestTime = millis();
 	}
+	else{
+		// let the remote know that the upload is complete
+		Lithne.setRecipient( REMOTE );
+		Lithne.setScope( lithneProgrammingScope );
+		Lithne.setFunction( fUploadCompleted );
+		Lithne.send();
+		stopProgrammer();
+	}
+	return 1;
 }
 
 // Check if we have received the packet we requested within half of the timeout time, otherwise request it again
@@ -222,82 +229,151 @@ void LithneProgrammer::checkUploadProgress()
 }
 
 
-//   Reads byte(s) on serial port with a delay. We always expect this to be 0x0d during programming
-/*uint8_t LithneProgrammer::readByteWithDelay()
+//  Reads byte(s) on serial port with retries.
+//	Keep reading until something is received.
+// This has to be called as long as we expect data, to keep the serial port free to receive more
+volatile uint8_t LithneProgrammer::readByte()
 {                                  
-	delay(20);
-	return usart_getchar(progUsart);
-}*/
+	uint32_t start = millis();
+	uint32_t elapsed; // declaring it here prevents the compiler from optimizing the calculation away for some reason.
+	while ((progUsart->STATUS & USART_RXCIF_bm) == false) { // wait while receive complete interrupt flag is false
+		elapsed = millis() - start;
+		if(elapsed > 5000u){ // 5 second timeout
+			return 0;
+		}
+	}
+	uint8_t received = progUsart->DATA;
+	debugMessage("rec %c [%x]", received, received);
+	return received;
+}
 
-/* Bits below based on Arduino Copier - An arduino sketch that can upload sketches to other boards, by George Caley. */
-int LithneProgrammer::copyPage( int pageNum )
-{
+bool LithneProgrammer::startProgrammer(void){
 	uint8_t responseByte;
-	if ( pageNum == 0 )                                //   only if first page, reset Main board and set programming parameters.
-	{
-		resetMain();
-		
-		
-	/*	while (progSerial->available())
-		{               //   Clean up unwanted data that may be stored in Serial buffer, to prevent these bytes being read during readByteWithDelay()
-			responseByte = progSerial->read();
-		}*/
-		usart_get(progUsart); // discard existing bytes in serial buffer
-		
-		usart_putchar(progUsart, 0x54);                       //   Select device type = 0x7b
-		usart_putchar(progUsart, 0x7b);
+	resetMain();
+	
+	delay_ms(100); //give the processor some time to boot
 
-		responseByte = usart_getchar(progUsart);
-		if (responseByte != 0x0d) return 0;
-		
-		usart_putchar(progUsart, 0x50);                       //   Enter programming mode
-		responseByte = usart_getchar(progUsart);
-		if (responseByte != 0x0d) return 0;
-		
-		usart_putchar(progUsart, 0x41);                       //   Set Address (0x00, 0x00)
-		usart_putchar(progUsart, byte(0x00));
-		usart_putchar(progUsart, byte(0x00));
+	// Clean up unwanted data that may be stored in Serial buffer, to prevent these bytes being read during readByteWithDelay()
+	while(progUsart->STATUS & USART_RXCIF_bm){	// wait while receive complete interrupt flag is true
+		responseByte = progUsart->DATA;
+	}
+	
+	usart_putchar(progUsart, 0x1b); // send the start bootloader byte
+	delay_ms(10);
+	
+	usart_putchar(progUsart, 'S');				// Return Software Identifier
 
-		responseByte = usart_getchar(progUsart);
-		if (responseByte != 0x0d) return 0;
+	printfToPort_P(DEBUG_PORT, false, PSTR("Detected bootloader: "));
+	for(int i = 0; i < 7; i++){
+		responseByte = readByte();
+		printfToPort_P(DEBUG_PORT, false, PSTR("%c"), responseByte);
 	}
 
-	// Now comes the interesting part
+	usart_putchar(progUsart, 'p');				// Return programmer type
+
+	printfToPort_P(DEBUG_PORT, false, PSTR(" Type: %c"), readByte());
+
+	usart_putchar(progUsart, 'V');				// Return programmer version
+	uint8_t v1 = readByte();
+	uint8_t v2 = readByte();
+	printfToPort_P(DEBUG_PORT, true, PSTR(" Software Version: %c.%c"), v1, v2);
+
+	usart_putchar(progUsart, 't');				// Get support device type
+	printfToPort_P(DEBUG_PORT, false, PSTR(" Supported device types: ["));
+	bool rightType = false;
+	for(int i = 0; i<8; i++){ // read max 8 device types, or this could block.
+		responseByte = readByte();
+		if(responseByte == 0x7b){
+			rightType = true;
+		}
+		if(responseByte == 0x00){
+			break; // end of list
+		}
+		else{
+			printfToPort_P(DEBUG_PORT, false, PSTR(" %X, "), responseByte);
+		}
+	}
+	printfToPort_P(DEBUG_PORT, true, PSTR("]"));
+	
+	if(!rightType){
+		printfToPort_P(DEBUG_PORT, true, PSTR("device code 0x7b not supported by bootloader"));
+		return 0;
+	}
+
+	usart_putchar(progUsart, 'T');				// Set device type
+	usart_putchar(progUsart, 0x7b);
+
+	if(readByte() == 0x0d){
+		printfToPort_P(DEBUG_PORT, true, PSTR("devcode selected: 0x7b"));
+	}
+	else{
+		printfToPort_P(DEBUG_PORT, true, PSTR("Error selecting devcode: 0x7b"));
+		return 0;
+	}
+
+	usart_putchar(progUsart, 'P');				// Set device type
+
+	if(readByte() == 0x0d){
+		printfToPort_P(DEBUG_PORT, true, PSTR("AVR device initialized and ready to accept instructions"));
+	}
+	else{
+		printfToPort_P(DEBUG_PORT, true, PSTR("Error entering program mode"));
+		return 0;
+	}
+
+	usart_putchar(progUsart, 's');				// Set device type
+	printfToPort_P(DEBUG_PORT, true, PSTR("Device code: %X %X %X"), readByte(), readByte(), readByte() );
+
+	usart_putchar(progUsart, 'A');				//   Set Address (0x00, 0x00)
+	usart_putchar(progUsart, byte(0x00));
+	usart_putchar(progUsart, byte(0x00));
+
+	if (readByte() != 0x0d){
+		debugMessage("Could not set address to 0x00 0x00");
+		return 0;
+	}
+	
+	// programmer successfully initialized 
+	return 1;
+}
+
+bool LithneProgrammer::stopProgrammer(void){
+	debugMessage("Stopping programmer");
+	programming = false;
+	pbuff.reset();
+	
+	usart_putchar(progUsart, 'L');                      //   Leave programming mode
+	readByte();											
+	
+	usart_putchar(progUsart, 'E');                      //   Exit bootloader
+	readByte();
+	
+	resetMain();										//   Reset main processor
+	
+	progUsart->CTRLA = oldInterruptSetting;
+	return 1;
+}
+
+bool LithneProgrammer::copyPage( int pageNum )
+{
 	// We pour blocks of data stored in buffer[], ready to write to the AVR's flash
 	// We only write in blocks of 512 bytes for the atXmega256.
-
-	usart_putchar(progUsart, 0x42);                       //   Write data into flash, address increment is done automatically
-	usart_putchar(progUsart, 0x02);
-	usart_putchar(progUsart, byte(0x00));
-	usart_putchar(progUsart, 0x46);
+	printfToPort_P(DEBUG_PORT, true, PSTR("Writing flash page %u"), packetsReceived);
+	
+	usart_putchar(progUsart, 'B');					//   Start flash block load
+	usart_putchar(progUsart, 0x02);					//   ?? Part of 'B' command, values copied from avrdude
+	usart_putchar(progUsart, 0x00);					//	 ??
+	usart_putchar(progUsart, 'F');					//	 Flash block
 	
 	for (uint16_t i = 0; i < pageSize; i++)
 	{
 		usart_putchar(progUsart,  pbuff.getByte(i) );
 	}
 
-	responseByte = usart_getchar(progUsart);
-	if (responseByte != 0x0d) return 0;
-	
-	// If we are done uploading
-	if ( doneUploading == true )
-	{
-		usart_putchar(progUsart, 0x4c);                       //   Leave programming mode
-		responseByte = usart_getchar(progUsart);
-		if (responseByte != 0x0d) return 0;
+	if (readByte() != 0x0d) return 0;
 		
-		usart_putchar(progUsart, 0x45);                       //   Exit bootloader
-		responseByte = usart_getchar(progUsart);
-		if (responseByte != 0x0d) return 0;
-		
-		resetMain();					//   Reset main processor
-		
-		programSucces = true;
-		programming = false;
-		progUsart->CTRLA = oldInterruptSetting;
-	}
-	// If we've reached here, then current packet has been programmed properly onto the xmega256
-	// But please note: no sketch verification is done by this sketch!
+	// If we reached here, then current packet has been programmed successfully.
+	// But please note: no verification is done like avrdude, only bootloader replies are checked!
 	return 1;
 }
 
@@ -349,12 +425,7 @@ void LithneProgrammer::preventHangup(){
 	{
 		if ( millis()-lastPacketTimer > PROGRAM_TIMEOUT )
 		{
-			programming = false;
-			// restore original interrupt settings for serial port
-			progUsart->CTRLA = oldInterruptSetting;
-			
-			// reset the main proc in case we were in bootloader or something
-			resetMain();
+			stopProgrammer();
 			Lithne.getNodeByID( REMOTE )->setAddress64( XBeeAddress64(0x00,0x00) );
 		}
 		// If we are programming, we also check whether we receive new packets on our requests - if not, we request again

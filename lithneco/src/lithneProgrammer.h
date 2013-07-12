@@ -60,9 +60,11 @@ class LithneProgrammer{
 	void processFileName();
 	void processLastUpload();
 	void processKill();
-	void program( bool firstPacket );
-	//uint8_t readByteWithDelay();
-	int copyPage(int pageNum);
+	bool startProgrammer();
+	bool stopProgrammer();
+	bool program();
+	volatile uint8_t readByte();
+	bool copyPage(int pageNum);
 	void checkUploadProgress();
 	bool busyProgramming();
 	void preventHangup();
@@ -82,7 +84,7 @@ class LithneProgrammer{
 	
 	unsigned long lastPacketTimer;   // Used to determine time-out
 	bool doneUploading;
-	bool programSucces;
+	//bool programSucces;
 	volatile bool programming;
 	uint16_t packetsIncoming, packetsReceived;    // Keep track of the expected number of incoming packets and the number of packets received so far
 	uint32_t lastPacketRequestTime;		              // To keep track of our last request time so we can request again if it takes too long

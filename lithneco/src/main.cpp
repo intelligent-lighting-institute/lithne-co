@@ -106,12 +106,9 @@ int main(void)
 	usart_set_rx_interrupt_level(&USART_COMM1, USART_INT_LVL_HI);
 	usart_set_rx_interrupt_level(&USART_XBEE, USART_INT_LVL_HI);
 	
-	
-	debugMessage("free memory before Lithne init\t%d", freeRam());	
-	
 	lithneProgrammer.init(&USART_COMM0);
 	Lithne.setSerial(serialCo2Xbee);
-		
+
 	while (true) {
 		if(main_cdc_is_open(1)){
 			// XBEE is directly linked to USB. Skip Lithne forwarding/programming

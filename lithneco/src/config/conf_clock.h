@@ -54,8 +54,6 @@
 #define CONFIG_SYSCLK_PSADIV          SYSCLK_PSADIV_1
 #define CONFIG_SYSCLK_PSBCDIV         SYSCLK_PSBCDIV_1_1
 
-
-
 /* DFLL autocalibration, not working, something wrong with external crystal? */
 //#define CONFIG_OSC_AUTOCAL_RC2MHZ_REF_OSC  OSC_ID_XOSC
 //#define CONFIG_OSC_AUTOCAL_RC32MHZ_REF_OSC OSC_ID_XOSC
