@@ -38,7 +38,7 @@ Define the number of nodes that are created
 Default is 20
 **/
 #ifndef MAX_NODES
-	#define MAX_NODES 20
+	#define MAX_NODES 1
 #endif
 	
 class LithneClass

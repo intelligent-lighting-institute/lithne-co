@@ -111,23 +111,13 @@ int main(void)
 	
 	lithneProgrammer.init(&serialCo2MainSerial);
 	Lithne.setSerial(serialCo2Xbee);
-	
-	debugMessage("free memory after Lithne init \t%d", freeRam());
-	
-	while(1){
-		if(millis()%1000 == 0){
-			char tempString[] =  "Millis: %lu";
-			printfToPort(0, true, tempString, millis());
-			delay_ms(1);
-		}
-	}
 		
 	while (true) {
 		if(main_cdc_is_open(1)){
 			// XBEE is directly linked to USB. Skip Lithne forwarding/programming
 			continue;
 		}
-		//debugMessage("sys clock: %ul", sysclk_get_main_hz());
+		
 		if (Lithne.available() ){
 			// Only process messages inside the programming scope
 			if ( Lithne.getScope() == lithneProgrammingScope ){

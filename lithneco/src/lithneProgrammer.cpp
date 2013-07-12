@@ -39,7 +39,7 @@ void LithneProgrammer::updateRemoteAddress(){
 	{
 		// If so, we set the new 64 bit address.
 		Lithne.getNodeByID( REMOTE )->setAddress64( Lithne.getSender64() );
-		debugMessage("Setting Remote Add (%x, %x): ", \
+		debugMessage("Setting Remote Add (%lX, %lX): ", \
 			Lithne.getNodeByID( REMOTE )->getAddress64().getMsb(), \
 			Lithne.getNodeByID( REMOTE )->getAddress64().getLsb());
 	}
@@ -188,7 +188,7 @@ void LithneProgrammer::program( bool firstPacket )
 	if (packetsIncoming > packetsReceived)
 	{
 		debugMessage("RequestNxtPckt: \t %u", packetsReceived);
-		debugMessage("From Remote (%x, %x): ", \
+		debugMessage("From Remote (%lX, %lX): ", \
 			Lithne.getNodeByID( REMOTE )->getAddress64().getMsb(), \
 			Lithne.getNodeByID( REMOTE )->getAddress64().getLsb());
 		
@@ -206,9 +206,9 @@ void LithneProgrammer::checkUploadProgress()
 {
 	if( programming )
 	{
-		if (abs(millis()-lastPacketRequest) > (PROGRAM_TIMEOUT/2) )
+		if (millis()-lastPacketRequest > (PROGRAM_TIMEOUT/2) )
 		{
-			debugMessage("TIMED PCK REQUEST: \t %d", (int) packetsReceived);
+			debugMessage("TIMED PCK REQUEST: \t %u", packetsReceived);
 			Lithne.setRecipient( REMOTE );
 			Lithne.setScope( lithneProgrammingScope );
 			Lithne.setFunction( fRequestNextPacket );
@@ -342,7 +342,7 @@ void LithneProgrammer::preventHangup(){
 	//  Timeout check to prevent code from staying in program mode for ever
 	if ( busyProgramming() )
 	{
-		if ( abs( millis()-lastPacketTimer ) > PROGRAM_TIMEOUT )
+		if ( millis()-lastPacketTimer > PROGRAM_TIMEOUT )
 		{
 			programming = false;
 			// reset the main proc in case we were in bootloader or something

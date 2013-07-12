@@ -29,14 +29,6 @@ void printToPort(uint8_t port, bool printLine, const char * string, uint16_t num
 	}
 }
 
-void debugMessageImpl_P(const char *fmt, ... ){
-	va_list args;
-	printToPort(DEBUG_PORT, false, "\t\t\t\tDEBUG\t", sizeof("\t\t\t\tDEBUG\t")); // print indent and DEBUG without line end
-	va_start (args, fmt );
-	printfToPort_P(DEBUG_PORT, true, fmt, args); // print debug message and line end
-	va_end (args);
-}
-
 // create a printf like interface to each port. Format string stored in PROGMEM
 void printfToPort_P(uint8_t port, bool printLine, const char *fmt, ... ){	
 	uint16_t numChars = 0;

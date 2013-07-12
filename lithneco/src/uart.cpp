@@ -91,7 +91,7 @@ void uart_config(USART_t * usart, usb_cdc_line_coding_t * cfg)
 	usart->CTRLC = reg_ctrlc;
 	// Update baudrate
 	uart_set_baudrate(usart, cfg->dwDTERate);
-	// debugMessage("baud %ul", cfg->dwDTERate);
+	// debugMessage("baud %lu", cfg->dwDTERate);
 }
 
 void uart_set_baudrate(USART_t * usart, le32_t baud){
