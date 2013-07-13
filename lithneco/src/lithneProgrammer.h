@@ -42,7 +42,7 @@ enum LithneProgrammer_function_numbers{
 };
 
 #define REMOTE 0                //  Use node at ID 0 as remote
-#define PROGRAM_TIMEOUT 3000u     // Value determines the number of millis() after which the programming times out (no packs received)
+#define PROGRAM_TIMEOUT 5000u     // Value determines the number of millis() after which the programming times out (no packs received)
 static const uint16_t lithneProgrammingScope = 1737;
 
 
@@ -52,7 +52,7 @@ class LithneProgrammer{
 	LithneProgrammer();
 	~LithneProgrammer();
 	
-	void init(USART_t * usart);
+	void init(USART_t * usart, HardwareSerial * serial);
 	void updateRemoteAddress();
 	void processPacket();
 	void processCheckin();
@@ -83,13 +83,12 @@ class LithneProgrammer{
 	uint8_t oldInterruptSetting;
 	
 	unsigned long lastPacketTimer;   // Used to determine time-out
-	bool doneUploading;
-	//bool programSucces;
-	volatile bool programming;
+	bool programming;
 	uint16_t packetsIncoming, packetsReceived;    // Keep track of the expected number of incoming packets and the number of packets received so far
 	uint32_t lastPacketRequestTime;		              // To keep track of our last request time so we can request again if it takes too long
 	uint16_t pageNumber;                           // Keep track of the number of pages programmed
-	USART_t * progUsart;
+	USART_t * progUsart;		// pointer to the USART
+	HardwareSerial * progSerial;	// pointer to the HardwareSerial class wrapping the usart
 
 };
 

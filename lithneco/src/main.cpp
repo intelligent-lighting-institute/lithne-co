@@ -106,7 +106,7 @@ int main(void)
 	usart_set_rx_interrupt_level(&USART_COMM1, USART_INT_LVL_HI);
 	usart_set_rx_interrupt_level(&USART_XBEE, USART_INT_LVL_HI);
 	
-	lithneProgrammer.init(&USART_COMM0);
+	lithneProgrammer.init(&USART_COMM0, &serialCo2MainSerial); // should not be necessary to pass 2 objects, but a quick hack to make it work near deadline
 	Lithne.setSerial(serialCo2Xbee);
 
 	while (true) {
