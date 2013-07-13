@@ -68,6 +68,7 @@ class LithneProgrammer{
 	void checkUploadProgress();
 	bool busyProgramming();
 	void preventHangup();
+	void requestNextPacket(void);
 	
 	void resetMain(void);
 	void setMainReset(bool holdInReset);

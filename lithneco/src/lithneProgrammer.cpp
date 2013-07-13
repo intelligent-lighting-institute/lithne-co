@@ -166,15 +166,8 @@ bool LithneProgrammer::program(void)
 		// Reset the program packet buffer so we are able to receive the new stuff
 		pbuff.reset();
 		
-		//  Request a new page if the page is copied successfully
-		if ( success == true )
-		{
-			Lithne.setRecipient( REMOTE );
-			Lithne.setScope( lithneProgrammingScope );
-			Lithne.setFunction( fCodeProgrammed );
-			Lithne.send();
-		}
-		else{
+		//  Abort if page is not copied successfully
+		if (!success){
 			debugMessage("Error while copying page");
 			return 0;
 		}			
@@ -183,17 +176,7 @@ bool LithneProgrammer::program(void)
 	// If we expect more packets to be incoming than we have received so far - request next packet
 	if (!lastPacket)
 	{
-		debugMessage("RequestNxtPckt: %u rom Remote (%lX, %lX)", packetsReceived, \
-			Lithne.getNodeByID( REMOTE )->getAddress64().getMsb(), \
-			Lithne.getNodeByID( REMOTE )->getAddress64().getLsb());
-		
-		//  update progress
-		Lithne.setRecipient( REMOTE );
-		Lithne.setScope( lithneProgrammingScope );
-		Lithne.setFunction( fRequestNextPacket );
-		Lithne.addArgument( packetsReceived );
-		Lithne.send();
-		lastPacketRequestTime = millis();
+		requestNextPacket();
 	}
 	else{
 		// let the remote know that the upload is complete
@@ -215,14 +198,8 @@ void LithneProgrammer::checkUploadProgress()
 		unsigned long timeSinceLastRequest = millis() - lastPacketRequestTime;
 		if (timeSinceLastRequest > (PROGRAM_TIMEOUT/2) )
 		{
-			debugMessage("TIMED PCK REQUEST: \t %u", packetsReceived);
-			debugMessage("Time since last request %lu, millis: %lu", timeSinceLastRequest, millis());
-			Lithne.setRecipient( REMOTE );
-			Lithne.setScope( lithneProgrammingScope );
-			Lithne.setFunction( fRequestNextPacket );
-			Lithne.addArgument( packetsReceived );
-			Lithne.send();
-			lastPacketRequestTime = millis();
+			debugMessage("Request packet %u again", packetsReceived);
+			requestNextPacket();
 		}
 	}
 }
@@ -242,7 +219,7 @@ volatile uint8_t LithneProgrammer::readByte()
 		}
 	}
 	uint8_t received = progSerial->read();
-	debugMessage("rec %c [%x]", received, received);
+	// debugMessage("rec %c [%x]", received, received);
 	return received;
 }
 
@@ -350,10 +327,10 @@ bool LithneProgrammer::stopProgrammer(void){
 	pbuff.reset();
 	
 	progSerial->write('L');                      //   Leave programming mode
-	readByte();											
+	// readByte();											
 	
 	progSerial->write('E');                      //   Exit bootloader
-	readByte();
+	// readByte();
 	
 	resetMain();										//   Reset main processor
 	
@@ -365,7 +342,7 @@ bool LithneProgrammer::copyPage( int pageNum )
 {
 	// We pour blocks of data stored in buffer[], ready to write to the AVR's flash
 	// We only write in blocks of 512 bytes for the atXmega256.
-	printfToPort_P(DEBUG_PORT, true, PSTR("Writing flash page %u"), packetsReceived);
+	debugMessage("Writing flash page %u", pageNum);
 	
 	progSerial->write('B');					//   Start flash block load
 	progSerial->write((uint8_t) 0x02);					//   ?? Part of 'B' command, values copied from avrdude
@@ -384,7 +361,7 @@ bool LithneProgrammer::copyPage( int pageNum )
 	return 1;
 }
 
-bool LithneProgrammer::busyProgramming(){
+bool LithneProgrammer::busyProgramming(void){
 	return programming;	
 }
 
@@ -426,7 +403,7 @@ void LithneProgrammer::setXbeeReset(bool holdInReset)
 	}
 }
 
-void LithneProgrammer::preventHangup(){
+void LithneProgrammer::preventHangup(void){
 	//  Timeout check to prevent code from staying in program mode for ever
 	if ( busyProgramming() )
 	{
@@ -439,6 +416,20 @@ void LithneProgrammer::preventHangup(){
 		// If we are programming, we also check whether we receive new packets on our requests - if not, we request again
 		checkUploadProgress();
 	}
+}
+
+void LithneProgrammer::requestNextPacket(void){
+		debugMessage("Request Packet %u from Remote (%lX, %lX)", packetsReceived, \
+		Lithne.getNodeByID( REMOTE )->getAddress64().getMsb(), \
+		Lithne.getNodeByID( REMOTE )->getAddress64().getLsb());
+		
+		//  update progress
+		Lithne.setRecipient( REMOTE );
+		Lithne.setScope( lithneProgrammingScope );
+		Lithne.setFunction( fRequestNextPacket );
+		Lithne.addArgument( packetsReceived );
+		Lithne.send();
+		lastPacketRequestTime = millis();
 }
 
 LithneProgrammer lithneProgrammer;
