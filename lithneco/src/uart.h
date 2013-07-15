@@ -35,14 +35,6 @@ void uart_open(USART_t * usart);
  */
 void uart_close(USART_t * usart);
 
-/*! \brief Enables receive complete interrupt and data register interrupt for serial port
- */
-void uart_start_interrupt(USART_t * usart);
-
-/*! \brief Disables all interrupts for serial port
- */
-void uart_stop_interrupt(USART_t * usart);
-
 
 /*! \brief Custom baud rate function, because library function does not work well for 115200
  */
