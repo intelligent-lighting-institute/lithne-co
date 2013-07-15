@@ -184,7 +184,16 @@ bool LithneProgrammer::program(void)
 		Lithne.setScope( lithneProgrammingScope );
 		Lithne.setFunction( fUploadCompleted );
 		Lithne.send();
-		stopProgrammer();
+		if(stopProgrammer()){
+			debugMessage("Exit bootloader after successful programming.");
+			Lithne.setRecipient( REMOTE );
+			Lithne.setScope( lithneProgrammingScope );
+			Lithne.setFunction( fCodeProgrammed );
+			Lithne.send();
+		}
+		else{
+			debugMessage("Did not receive ack in exit program mode/bootloader");
+		}
 	}	
 	
 	return 1;
@@ -223,6 +232,7 @@ volatile uint8_t LithneProgrammer::readByte()
 	return received;
 }
 
+// See AVR109 self-programming app note for programming protocol: http://www.atmel.com/images/doc1644.pdf
 bool LithneProgrammer::startProgrammer(void){
 	uint8_t responseByte;
 	programming = true;      // We are now in programming mode
@@ -322,20 +332,26 @@ bool LithneProgrammer::startProgrammer(void){
 }
 
 bool LithneProgrammer::stopProgrammer(void){
+	bool success = true;
+	uint8_t returnByte;
+	
 	debugMessage("Stopping programmer");
-	programming = false;
 	pbuff.reset();
 	
 	progSerial->write('L');                      //   Leave programming mode
-	// readByte();											
-	
+	returnByte = readByte();
+	success = success && (returnByte == 0x0d);
+			
+		
 	progSerial->write('E');                      //   Exit bootloader
-	// readByte();
-	
+	returnByte = readByte();
+	success = success && (returnByte == 0x0d);
+		
 	resetMain();										//   Reset main processor
 	
 	progUsart->CTRLA = oldInterruptSetting;
-	return 1;
+	programming = false;
+	return success;
 }
 
 bool LithneProgrammer::copyPage( int pageNum )

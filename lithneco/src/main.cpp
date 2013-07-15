@@ -361,6 +361,7 @@ int freeRam () {
  */
 
 ISR(BADISR_vect){
+	debugMessage("BAD ISR!");
 	ioport_set_pin_level(C_DEBUGLED, true);
 	delay_ms(50);
 	ioport_set_pin_level(C_DEBUGLED, false);
