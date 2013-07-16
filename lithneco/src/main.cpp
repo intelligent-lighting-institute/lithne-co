@@ -119,52 +119,52 @@ int main(void)
 			// Only process messages inside the programming scope
 			if ( Lithne.getScope() == lithneProgrammingScope ){
 				lithneProgrammer.updateRemoteAddress();
+				// The programming function receives all data packets containing the program to be written
+				if ( Lithne.getFunction() == fProgramming )
+				{
+					lithneProgrammer.processPacket();
+				}
+				// Check-in Function
+				else if (Lithne.getFunction() == fCheckingIn && !lithneProgrammer.busyProgramming())
+				{
+					lithneProgrammer.processCheckin();
+				}
+				// Node Name Functions - Empty messages are a request, Messages with content set the node name
+				else if (Lithne.getFunction() == fNodeName && !lithneProgrammer.busyProgramming())
+				{
+					lithneProgrammer.processNodeName();
+				}
+				// LastUpload Functions - Empty messages are a request, Messages with content set the time of last upload
+				else if (Lithne.getFunction() == fLastUpload && !lithneProgrammer.busyProgramming())
+				{
+					lithneProgrammer.processLastUpload();
+				}
+				// File Name Functions - Empty messages are a request, Messages with content set the file name
+				else if (Lithne.getFunction() == fFileName && !lithneProgrammer.busyProgramming())
+				{
+					lithneProgrammer.processFileName();
+				}
+				// reset the main processor
+				else if (Lithne.getFunction() == fResetMain && !lithneProgrammer.busyProgramming())
+				{
+					lithneProgrammer.resetMain();
+				}
+				// Kill the main processor for a longer period of time, or turn it back on again
+				else if (Lithne.functionIs("killMain") && !lithneProgrammer.busyProgramming())
+				{
+					lithneProgrammer.processKill();
+				}
+				// If the message is not in the 'programming scope' this is a regular incoming Lithne message for the user (main proc) - Forward all bytes to main processor
+				else
+				{
+					for(int i=0; i < Lithne.getXBeePacketSize(); i++)                               //   send data in XBee packet straight through to the main processor
+					{
+						serialCo2MainXbee.write( Lithne.getXBeePacket()[i] );
+					}
+					serialCo2MainXbee.flush();
+				}
 			}
 				
-			// The programming function receives all data packets containing the program to be written
-			if ( Lithne.getFunction() == fProgramming )
-			{
-				lithneProgrammer.processPacket();
-			}
-			// Check-in Function
-			else if (Lithne.getFunction() == fCheckingIn && !lithneProgrammer.busyProgramming())
-			{
-				lithneProgrammer.processCheckin();
-			}
-			// Node Name Functions - Empty messages are a request, Messages with content set the node name
-			else if (Lithne.getFunction() == fNodeName && !lithneProgrammer.busyProgramming())
-			{
-				lithneProgrammer.processNodeName();	
-			}
-			// LastUpload Functions - Empty messages are a request, Messages with content set the time of last upload
-			else if (Lithne.getFunction() == fLastUpload && !lithneProgrammer.busyProgramming())
-			{
-				lithneProgrammer.processLastUpload();
-			}
-			// File Name Functions - Empty messages are a request, Messages with content set the file name
-			else if (Lithne.getFunction() == fFileName && !lithneProgrammer.busyProgramming())
-			{
-				lithneProgrammer.processFileName();
-			}
-			// reset the main processor
-			else if (Lithne.getFunction() == fResetMain && !lithneProgrammer.busyProgramming())
-			{
-				lithneProgrammer.resetMain();
-			}
-			// Kill the main processor for a longer period of time, or turn it back on again
-			else if (Lithne.functionIs("killMain") && !lithneProgrammer.busyProgramming())
-			{
-				lithneProgrammer.processKill();
-			}
-			// If the message is not in the 'programming scope' this is a regular incoming Lithne message for the user (main proc) - Forward all bytes to main processor
-			else
-			{
-				for(int i=0; i < Lithne.getXBeePacketSize(); i++)                               //   send data in XBee packet straight through to the main processor
-				{
-					serialCo2MainXbee.write( Lithne.getXBeePacket()[i] );
-				}
-				serialCo2MainXbee.flush();
-			}
 		}
 		
 		// forward communication from main processor to xbee

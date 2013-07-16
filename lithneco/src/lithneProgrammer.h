@@ -64,7 +64,7 @@ class LithneProgrammer{
 	bool stopProgrammer();
 	bool program();
 	volatile uint8_t readByte();
-	bool copyPage(int pageNum);
+	bool copyPage(uint16_t pageNum);
 	void checkUploadProgress();
 	bool busyProgramming();
 	void preventHangup();

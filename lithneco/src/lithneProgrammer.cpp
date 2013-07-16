@@ -354,7 +354,7 @@ bool LithneProgrammer::stopProgrammer(void){
 	return success;
 }
 
-bool LithneProgrammer::copyPage( int pageNum )
+bool LithneProgrammer::copyPage( uint16_t pageNum )
 {
 	// We pour blocks of data stored in buffer[], ready to write to the AVR's flash
 	// We only write in blocks of 512 bytes for the atXmega256.
