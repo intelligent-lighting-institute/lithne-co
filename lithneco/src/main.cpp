@@ -115,9 +115,11 @@ int main(void)
 			continue;
 		}
 		
-		if (Lithne.available() ){
+		if (Lithne.available() )
+		{
 			// Only process messages inside the programming scope
-			if ( Lithne.getScope() == lithneProgrammingScope ){
+			if ( Lithne.getScope() == lithneProgrammingScope )
+			{
 				lithneProgrammer.updateRemoteAddress();
 				// The programming function receives all data packets containing the program to be written
 				if ( Lithne.getFunction() == fProgramming )
@@ -154,17 +156,16 @@ int main(void)
 				{
 					lithneProgrammer.processKill();
 				}
-				// If the message is not in the 'programming scope' this is a regular incoming Lithne message for the user (main proc) - Forward all bytes to main processor
-				else
-				{
-					for(int i=0; i < Lithne.getXBeePacketSize(); i++)                               //   send data in XBee packet straight through to the main processor
-					{
-						serialCo2MainXbee.write( Lithne.getXBeePacket()[i] );
-					}
-					serialCo2MainXbee.flush();
-				}
 			}
-				
+			// If the message is not in the 'programming scope' this is a regular incoming Lithne message for the user (main proc) - Forward all bytes to main processor
+			else
+			{
+				for(int i=0; i < Lithne.getXBeePacketSize(); i++)                               //   send data in XBee packet straight through to the main processor
+				{
+					serialCo2MainXbee.write( Lithne.getXBeePacket()[i] );
+				}
+				serialCo2MainXbee.flush();
+			}
 		}
 		
 		// forward communication from main processor to xbee
