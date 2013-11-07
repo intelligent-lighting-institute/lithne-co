@@ -39,14 +39,34 @@ class Message
 	
 	void clearArguments();
 
-	void setRecipient64( XBeeAddress64 _addr64 );
-	void setRecipient16( uint16_t _addr16 );
+	/**	64-bit XBee Destination Address **/
+	XBeeAddress64 toXBeeAddress64( XBeeAddress64 _addr64 );
+	XBeeAddress64 toXBeeAddress64();
+	void setRecipient64( XBeeAddress64 _addr64 );	//deprecated
+	XBeeAddress64 getRecipient64( );				//deprecated
+
+	/**	16-bit XBee Destination Address **/
+	uint16_t toXBeeAddress16( uint16_t _addr16 );
+	uint16_t toXBeeAddress16();
+	void setRecipient16( uint16_t _addr16 );		//deprecated
+	uint16_t getRecipient16();						//deprecated
+
+	/**	64-bit XBee Sender Address **/
+	XBeeAddress64 fromXBeeAddress64();				
+	XBeeAddress64 fromXBeeAddress64( XBeeAddress64 _addr64 );
+	void setSender64( 	 XBeeAddress64 _addr64 );	//deprecated
+	XBeeAddress64 getSender64( );					//deprecated
+
+	/**	16-bit XBee Sender Address **/
+	uint16_t fromXBeeAddress16();
+	uint16_t fromXBeeAddress16( uint16_t _addr16 );
+	void setSender16( 	 uint16_t _addr16 );		//deprecated
+	uint16_t getSender16();							//deprecated
+
 	// void setRecipient(   uint8_t _id );
 	void setRecipient( Node * );
 	void setFunction( 	 uint16_t _func );
 	void setFunction( 	 String _func );
-	void setSender64( 	 XBeeAddress64 _addr64 );
-	void setSender16( 	 uint16_t _addr16 );
 
 	void setSender( 	 uint16_t _addr16, XBeeAddress64 _addr64 );
 	
@@ -71,15 +91,15 @@ class Message
 	uint16_t getArgument( uint8_t _position );	// Returns the integer from the arguments
 	
 	uint16_t getFunction();
-	uint16_t getSender16();
-	uint16_t getRecipient16();
+	
+
 	uint16_t getScope();
 	uint16_t hash( String _group );
 	
 	String 	 getStringArgument();
 	
-	XBeeAddress64 getSender64( );
-	XBeeAddress64 getRecipient64( );
+	
+	
 
   private:
   	uint8_t 		payloadSize		;	//Contains the number of bytes in the payload including the Scope (2 bytes) and function(1 byte)

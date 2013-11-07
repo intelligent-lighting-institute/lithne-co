@@ -24,8 +24,6 @@
 #include "LithneDefinitions.h"
 */
 
-#define MAX_NODES 1
-
 #if defined(ARDUINO) && ARDUINO >= 100
 	#define ARDUINO1DOT0 true
 #else
@@ -36,7 +34,9 @@
 //#define UNKNOWN_NODE_ID 254	 //The standard ID for an unknown node
 
 /*	Boolean	*/
-bool newMessage		=	false;
+bool newMessage			=	false;
+bool newATMessage		=	false;
+bool newRemoteATMessage	=	false;
 
 /* uint8_t */
 uint8_t DIGITAL[6]	=	{2, 4, 7, 8, 12, 13};	//defines the digital pins
@@ -52,13 +52,13 @@ uint8_t atDB[]		=	{'D','B'};
 uint16_t scopes[MAX_SCOPES]	=	{0};	//Stores the HASH conversions of the groups the node belongs to
 uint16_t numNodes			=	0;		//Contains the number of nodes in storage
 uint16_t last16B			=	0xFFFE;	//Stores the last 16-bit address we send a message to.
-uint16_t myAddress16		=	0xFFFE;	//Stores own 16-bit address.
-uint16_t myPANid			=	0;		//Stores the PAN ID of the network
-uint16_t myAssStat			=	0;		//Stores the association status of the node
+uint16_t myAddress16		=	UNKNOWN_16B;	//Stores own 16-bit address.
+uint16_t myPANid			=	UNKNOWN_PAN_ID;		//Stores the PAN ID of the network
+uint16_t myAssStat			=	UNKNOWN_STATUS;		//Stores the association status of the node
 
 /*	XBeeAddresses	*/
 XBeeAddress64	last64B			=	XBeeAddress64( 0x0, 0xFFFF);	//Stores the last 64-bit address we send a message to.
-XBeeAddress64	myAddress64		=	XBeeAddress64( 0x0, 0xFFFF);
+XBeeAddress64	myAddress64		=	XBeeAddress64( 0x0, UNKNOWN_64B); 
 
 
 
@@ -126,8 +126,7 @@ LithneClass::~LithneClass()
 /** Specify the baud rate at which to communicate to the XBee **/
 void LithneClass::init( uint32_t _baud, HardwareSerial &_port )
 {
-	xbee.setSerial( _port );
-	xbee.begin( _baud );
+	begin( _baud, _port );
 }
 
 /** Specify the baud rate at which to communicate to the XBee **/
@@ -163,6 +162,10 @@ void LithneClass::setFunction( uint16_t _function )
 **/
 void LithneClass::setRecipient( uint8_t _id )
 {
+	toID( _id );
+}
+void LithneClass::toID( uint8_t _id )
+{
 	/*	Retrieve the node the user refers to	*/
 	Node * receivingNode	=	getNodeByID( _id );
 	/*	From this node, get the 16-bit and 64-bit address and
@@ -175,18 +178,28 @@ void LithneClass::setRecipient( uint8_t _id )
 	}
 }
 /** Set the address of the receiving XBee by using the full 64 bit address **/
-void LithneClass::setRecipient( XBeeAddress64 _add64 )
+XBeeAddress64 LithneClass::toXBeeAddress( XBeeAddress64 _addr64 )
 {
 	/*	Retrieve the node the user refers to	*/
-	Node * receivingNode	=	getNodeBy64( _add64 );
+	Node * receivingNode	=	getNodeBy64( _addr64 );
 	
 	/*	From this node, get the 16-bit and 64-bit address and
 		write it to the outgoing message	*/
 	if (receivingNode != NULL)
 	{
-		outgoingMessage.setRecipient64( _add64 );
-		outgoingMessage.setRecipient16( receivingNode->getAddress16() );
+		outgoingMessage.toXBeeAddress64( _addr64 );
+		outgoingMessage.toXBeeAddress16( receivingNode->getAddress16() );
 	}
+	else
+	{
+		outgoingMessage.toXBeeAddress64( _addr64 );
+	}
+
+	return outgoingMessage.toXBeeAddress64();
+}
+void LithneClass::setRecipient( XBeeAddress64 _add64 )
+{
+	toXBeeAddress( _add64 );
 }
 /* Deprecated private function to set the recipient using a pointer to a node
 void LithneClass::setRecipient( Node * _receivingNode )
@@ -196,18 +209,29 @@ void LithneClass::setRecipient( Node * _receivingNode )
 }*/
 
 /**	Sets the receipient of the outgoing message using the 16 bit address **/
-void LithneClass::setRecipient16( uint16_t _add16 )
+uint16_t LithneClass::toXBeeAddress( uint16_t _addr16 )
 {	
 /*	Retrieve the node the user refers to	*/
-	Node * receivingNode	=	getNodeBy16( _add16 );
+	Node * receivingNode	=	getNodeBy16( _addr16 );
 	
 	/*	From this node, get the 16-bit and 64-bit address and
 		write it to the outgoing message	*/
 	if (receivingNode != NULL)
 	{
-		outgoingMessage.setRecipient64( receivingNode->getAddress64() );
-		outgoingMessage.setRecipient16( _add16 );
+		outgoingMessage.toXBeeAddress64( receivingNode->getAddress64() );
+		outgoingMessage.toXBeeAddress16( _addr16 );
 	}
+	else
+	{
+		outgoingMessage.toXBeeAddress16( _addr16);
+	}
+
+	return outgoingMessage.toXBeeAddress16();
+}
+
+void LithneClass::setRecipient16( uint16_t _add16 )
+{
+	toXBeeAddress( _add16 );
 }
 
 /** Add an argument to the outgoing message **/
@@ -262,8 +286,8 @@ void LithneClass::println( Node * _node, String _stringArg )
 	
 	if (_node != NULL)
 	{
-		outgoingMessage.setRecipient64( _node->getAddress64() );
-		outgoingMessage.setRecipient16( _node->getAddress16() );
+		outgoingMessage.toXBeeAddress64( _node->getAddress64() );
+		outgoingMessage.toXBeeAddress16( _node->getAddress16() );
 		outgoingMessage.setFunction( F_PRINTLN );
 		outgoingMessage.setScope( NO_SCOPE );
 		outgoingMessage.setStringArgument( _stringArg );
@@ -592,16 +616,75 @@ void LithneClass::helloWorld( XBeeAddress64 _addr64, bool askReply )
 /** Check whether new data is available. If so, raise newMessage flag **/
 bool LithneClass::available()
 {
-	readXbee();
-
+	// We check if the newMessage flag has been set. We let the user process that.
 	if( newMessage )
 	{
 		newMessage = false; // reset flag
 		return true;
 	}
+	// If we don't have a new message, we read the xbee to see if we have something new in the buffer.
 	else
 	{
-		return false;
+		readXbee();
+		if( newMessage )
+		{
+			newMessage = false; // reset flag
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+}
+
+bool LithneClass::myInfoAvailable()
+{
+	// We check if the newATMessage flag has been set. We let the user process that.
+	if( newATMessage )
+	{
+		newATMessage = false; // reset flag
+		return true;
+	}
+	// If we don't have a new message, we read the xbee to see if we have something new in the buffer.
+	else
+	{
+		readXbee();
+		if( newATMessage )
+		{
+			newATMessage = false; // reset flag
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+}
+
+bool LithneClass::dbAvailable()
+{
+	// We check if the newRemoteATMessage flag has been set. We let the user process that.
+	if( newRemoteATMessage )
+	{
+		newRemoteATMessage = false; // reset flag
+		return true;
+	}
+	// If we don't have a new message, we read the xbee to see if we have something new in the buffer.
+	else
+	{
+		readXbee();
+		if( newRemoteATMessage )
+		{
+			newRemoteATMessage = false; // reset flag
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
 
 }
@@ -700,8 +783,30 @@ bool LithneClass::nodeKnown16( uint16_t _addr16 )
 	*/
 }
 
+/** Check if a new DB measurement is available for any node and return the Node ID for that node **/
+uint8_t LithneClass::newDBForNode( )
+{
+	uint8_t nodeID = UNKNOWN_NODE_ID;
+	for(int i = 0; i < getNumberOfNodes(); i++)
+	{
+		Node * currentNode	= getNode( i );
+		if (currentNode != NULL)
+		{
+			if( currentNode->isNewMeasurement() )
+			{
+				/*
+				Serial.print("NEW BD INCOMING on node : ");
+				Serial.println(_id);*/
+				nodeID = currentNode->getID();
+				break;
+			}
+		}
+	}
+	return nodeID;
+}
+
 /** Check if a new DB measurement is available for a particular node (identified by Node ID) **/
-bool LithneClass::newDBMeasurement( uint8_t _id )
+bool LithneClass::newDBForNode( uint8_t _id )
 {
 	bool newMeasure = false;	//reset the flag
 	Node * currentNode	= getNodeByID( _id );
@@ -713,7 +818,6 @@ bool LithneClass::newDBMeasurement( uint8_t _id )
 			/*
 			Serial.print("NEW BD INCOMING on node : ");
 			Serial.println(_id);*/
-			currentNode->closeDBRequest();
 			newMeasure = true;
 		}
 	}
@@ -765,8 +869,33 @@ bool LithneClass::removeScope( String _group )
 	return removeScope( hash(_group) );
 }
 
+/**	Compares two 64-bit XBeeAddress **/
+bool LithneClass::equals( XBeeAddress64 _addr1, XBeeAddress64 _addr2 )
+{
+	bool _equal	=	true;
 
+	if( _addr1.getMsb() != _addr2.getMsb() )
+	{
+		_equal	=	false;
+	}
+	else if( _addr1.getLsb() != _addr2.getLsb() )
+	{
+		_equal	=	false;
+	}
 
+	return _equal;
+}
+
+bool LithneClass::isFromNodeID( uint8_t _id )
+{
+	bool _equal	=	false;
+	Node * curNode = getNodeByID( _id );
+	if( curNode != NULL )
+	{
+		_equal	=	equals(curNode->getAddress64(), incomingMessage.fromXBeeAddress64() );
+	}
+	return _equal;
+}
 
 /*
  ___ _  _ _____ ___ ___ ___ ___ 
@@ -969,7 +1098,7 @@ uint16_t LithneClass::getDB( uint8_t id )
 {
 	Node * refNode = getNodeByID(id);
 	uint16_t dbStrength = 0;
-	
+	 
 	if (refNode != NULL) 
 	{
 		dbStrength = refNode->getDB();
@@ -1071,7 +1200,6 @@ uint32_t LithneClass::sendATCommand( uint8_t * cmd, uint16_t waitForResponse )
 		if ( xbee.readPacket(waitForResponse) )
 		{
 			AtCommandResponse atResponse 	= AtCommandResponse();
-			
 			/*	If the packet is indeed an AT_COMMAND_RESPONSE,	we write it to the atResponse.	*/
 			if (xbee.getResponse().getApiId() == AT_COMMAND_RESPONSE) 
 			{
@@ -1088,24 +1216,22 @@ uint32_t LithneClass::sendATCommand( uint8_t * cmd, uint16_t waitForResponse )
         			}
 				}
 			}
-  		} 
+  		}
 		else 
   		{
-	    // at command failed
-    	if (xbee.getResponse().isError()) 
-	    {
-//      	Serial.print("Error reading packet.  Error code: ");  
-//  	    Serial.println(xbee.getResponse().getErrorCode());
-	    } 
-    	else 
-	    {
-//      	Serial.print("No response from radio");  
-    	} 
-  	}
-  }
-
+	    	// at command failed
+	    	if (xbee.getResponse().isError()) 
+		    {
+	//      	Serial.print("Error reading packet.  Error code: ");  
+	//  	    Serial.println(xbee.getResponse().getErrorCode());
+		    } 
+	    	else 
+		    {
+	//      	Serial.print("No response from radio");  
+	    	}
+	    }
+	}
   return atAnswer;
-  
 }
 
 /* 
@@ -1147,11 +1273,13 @@ XBeeAddress64 LithneClass::getNodeAddress64( uint8_t id )
 XBeeAddress64 LithneClass::getMyAddress64( bool forceCheck )
 {
 	/*	If the address is unknown, or if we force a recheck.	*/
-	if( myAddress64.getLsb()	==	UNKNOWN_64B || forceCheck )
+	if( myAddress64.getLsb() ==	UNKNOWN_64B || forceCheck )
 	{
 		uint32_t msb	=	sendATCommand( atSH, 1000 );	//We want to wait for an answer
 		uint32_t lsb	=	sendATCommand( atSL, 1000 );	//We want to wait for an answer
 		myAddress64		=	XBeeAddress64( msb, lsb );
+		// Serial.print("myadd is now: ");
+		// Serial.println(myAddress64.getLsb());
 	}
 	
 	return myAddress64;
@@ -1293,7 +1421,6 @@ xbee.readPacket();
 
 if (xbee.getResponse().isAvailable()) //Returns a reference to the current response Note: once readPacket is called again this response will be overwritten!
 {
-	// Serial.println(" XBee Pack available " );
 	int responseType	=	xbee.getResponse().getApiId();
 	
   	if (responseType == ZB_RX_RESPONSE)
@@ -1303,7 +1430,7 @@ if (xbee.getResponse().isAvailable()) //Returns a reference to the current respo
      	newMessage = true; // set flag
      	
      	/* Clear the old received message */
-	incomingMessage.clearArguments();
+		incomingMessage.clearArguments();
      	
      	xbee.getResponse().getZBRxResponse(rx);
      	
@@ -1370,7 +1497,6 @@ if (xbee.getResponse().isAvailable()) //Returns a reference to the current respo
     /*	If the packet is indeed an AT_COMMAND_RESPONSE,	we write it to the atResponse.	*/
 	else if (responseType == AT_COMMAND_RESPONSE) 
 	{
-//		Serial.println("Received AT answer");
 		AtCommandResponse atResponse 	=	AtCommandResponse();
 		uint32_t atAnswer				=	0;
 		
@@ -1379,6 +1505,7 @@ if (xbee.getResponse().isAvailable()) //Returns a reference to the current respo
 		/*	If the atResponse is correct (does not return an error code), we can process it.	*/
 		if (atResponse.isOk()) 
 		{
+			newATMessage = true;
 			if (atResponse.getValueLength() > 0) 
 			{
 				for (int i = 0; i < atResponse.getValueLength(); i++) 
@@ -1445,68 +1572,72 @@ if (xbee.getResponse().isAvailable()) //Returns a reference to the current respo
 	{	
 		/* Serial.println("Received Remote AT Command Response");*/
 		xbee.getResponse().getRemoteAtCommandResponse(rATcmd);
-		
-      	if ( rATcmd.getCommand()[0]	==	atDB[0] &&
-      		 rATcmd.getCommand()[1]	==	atDB[1] )
-      	{
-	      	XBeeAddress64 rAddress64	=	rATcmd.getRemoteAddress64();
-	      	uint16_t rAddress16			=	rATcmd.getRemoteAddress16();
-			
-			// This is now done at the end of this section
-			//getNodeBy64( rAddress64 )->addDBMeasurement( rATcmd.getValue()[0] );
-			
-			/*	The line above replaces this section
-			for (int i = 0; i < numNodes; i++)
-			{
-				if( nodes[i]->getID() == remoteId )
-				{
-	    			nodes[i]->addDBMeasurement( rATcmd.getValue()[0] );
-		    	}
-	      	}
-	      	*/
-	      	/* we use this function also to relate 16 bit addresses to 64 bit addresses */
-	      	if( !nodeKnown16( rAddress16 ) && nodeKnown64( rAddress64 ) )
-	      	{
-	      		getNodeBy64( rAddress64 )->setAddress16( rAddress16 );
-	      		// Serial.println("We know the 64-bit address, but not the 16-bit - now setting");
-	      	}
-			/* If we receive a message from the coordinator; it has 16-bit add 0. We related this to the node with 64 bit address 0x0 0x0; the coordinator. */
-			else if ( rAddress16 == 0 && !nodeKnown16( rAddress16 ) )
-			{ 			
-				Node * defaultCoordinator = getNodeBy64( XBeeAddress64(0x0,0x0) );
-				if (defaultCoordinator != NULL) 
-				{
-					defaultCoordinator->setAddress16( rAddress16 );
-				}
-				/*Serial.print("Set 16 bit add of coordinator to ");
-				Serial.print( getNodeBy64( XBeeAddress64(0x0,0x0) )->getAddress16(  ) ); 
-				Serial.print(" which is Node ID ");
-				Serial.print( getNodeBy64( XBeeAddress64(0x0,0x0) )->getID(  ) );  */
-			}
-			
-			/*Serial.print("Received Remote DB from nodeId ");
-			Serial.print( getNodeBy16( rAddress16 )->getID() );
-			Serial.print(" (64b: ");
-			Serial.print( rAddress64.getLsb(), HEX );
-			Serial.print(", 16b: ");
-			Serial.print( rAddress16, DEC ); 
-			
-			Serial.print( ") DB val: ");
-			Serial.println( rATcmd.getValue()[0] ); */
-			
-			Node * remoteNode = getNodeBy16( rAddress16 );
-			if ( remoteNode != NULL) 
-			{
-				remoteNode->addDBMeasurement( rATcmd.getValue()[0] );
-			}
-	    }
-	    /*	Here we can add other remote AT command responses
-	    else if( rATcmd.getCommand()[0]	==	atSH[0] &&
-      		 	 rATcmd.getCommand()[1]	==	atSH[1] )
+		if (rATcmd.isOk()) 
 		{
-		
+	      	if ( rATcmd.getCommand()[0]	==	atDB[0] &&
+	      		 rATcmd.getCommand()[1]	==	atDB[1] )
+	      	{
+	      		newRemoteATMessage = true;
+
+		      	XBeeAddress64 rAddress64	=	rATcmd.getRemoteAddress64();
+		      	uint16_t rAddress16			=	rATcmd.getRemoteAddress16();
+				
+				// This is now done at the end of this section
+				//getNodeBy64( rAddress64 )->addDBMeasurement( rATcmd.getValue()[0] );
+				
+				/*	The line above replaces this section
+				for (int i = 0; i < numNodes; i++)
+				{
+					if( nodes[i]->getID() == remoteId )
+					{
+		    			nodes[i]->addDBMeasurement( rATcmd.getValue()[0] );
+			    	}
+		      	}
+		      	*/
+		      	/* we use this function also to relate 16 bit addresses to 64 bit addresses */
+		      	if( !nodeKnown16( rAddress16 ) && nodeKnown64( rAddress64 ) )
+		      	{
+		      		getNodeBy64( rAddress64 )->setAddress16( rAddress16 );
+		      		// Serial.println("We know the 64-bit address, but not the 16-bit - now setting");
+		      	}
+				/* If we receive a message from the coordinator; it has 16-bit add 0. We related this to the node with 64 bit address 0x0 0x0; the coordinator. */
+				else if ( rAddress16 == 0 && !nodeKnown16( rAddress16 ) )
+				{ 			
+					Node * defaultCoordinator = getNodeBy64( XBeeAddress64(0x0,0x0) );
+					if (defaultCoordinator != NULL) 
+					{
+						defaultCoordinator->setAddress16( rAddress16 );
+					}
+					/*Serial.print("Set 16 bit add of coordinator to ");
+					Serial.print( getNodeBy64( XBeeAddress64(0x0,0x0) )->getAddress16(  ) ); 
+					Serial.print(" which is Node ID ");
+					Serial.print( getNodeBy64( XBeeAddress64(0x0,0x0) )->getID(  ) );  */
+				}
+				
+				/*Serial.print("Received Remote DB from nodeId ");
+				Serial.print( getNodeBy16( rAddress16 )->getID() );
+				Serial.print(" (64b: ");
+				Serial.print( rAddress64.getLsb(), HEX );
+				Serial.print(", 16b: ");
+				Serial.print( rAddress16, DEC ); 
+				
+				Serial.print( ") DB val: ");
+				Serial.println( rATcmd.getValue()[0] ); */
+				
+				Node * remoteNode = getNodeBy16( rAddress16 );
+				if ( remoteNode != NULL) 
+				{
+					remoteNode->addDBMeasurement( rATcmd.getValue()[0] );
+				}
+		    }
+		    /*	Here we can add other remote AT command responses
+		    else if( rATcmd.getCommand()[0]	==	atSH[0] &&
+	      		 	 rATcmd.getCommand()[1]	==	atSH[1] )
+			{
+			
+			}
+			*/
 		}
-		*/
     }
     /*	Confirmation on transmitted package. This is received
     	everytime a message is transmitted and has details

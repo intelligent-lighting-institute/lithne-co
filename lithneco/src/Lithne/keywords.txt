@@ -39,11 +39,13 @@ addScope	KEYWORD2
 helloWorld	KEYWORD2
 
 #available	KEYWORD2
+myInfoAvailable	KEYWORD2
+dbAvailable	KEYWORD2
 addNode	KEYWORD2
 nodeKnown	KEYWORD2
 nodeKnown64	KEYWORD2
 nodeKnown16	KEYWORD2
-newDBMeasurement	KEYWORD2
+newDBForNode	KEYWORD2
 hasScope	KEYWORD2
 functionIs	KEYWORD2
 
@@ -78,7 +80,7 @@ setID		KEYWORD2
 setAddress64	KEYWORD2
 setAddress16	KEYWORD2
 hasAddress16	KEYWORD2
-getDB		KEYWORD2
+getDB	KEYWORD2
 getAddress16	KEYWORD2
 getMSB		KEYWORD2
 getLSB		KEYWORD2

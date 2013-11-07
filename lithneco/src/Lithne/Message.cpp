@@ -51,15 +51,47 @@ __   _____ ___ ___
 */
 
 /** Set the recipient for the message using 64 bit Address **/
+XBeeAddress64 Message::toXBeeAddress64( XBeeAddress64 _addr64 )
+{
+	return recipient64	=	_addr64;
+}
+XBeeAddress64 Message::toXBeeAddress64(  )
+{
+	return recipient64;
+}
+/**	DEPRECATED **/
 void Message::setRecipient64( XBeeAddress64 _addr64 )
 {
-	recipient64	=	_addr64;
+	toXBeeAddress64( _addr64 );
 }
+/** Return the receiving XBee address **/
+XBeeAddress64 Message::getRecipient64()
+{
+	return toXBeeAddress64();
+}
+
 /** Set the recipient for the message using 16 bit Address, as this is varying, you wont use this in your code **/
+uint16_t Message::toXBeeAddress16( uint16_t _addr16 )
+{
+	return recipient16	=	_addr16;
+}
+/** return the 16 bit address of the recipient **/
+uint16_t Message::toXBeeAddress16( )
+{
+	return recipient16;
+}
+/**	DEPRECATED **/
 void Message::setRecipient16( uint16_t _addr16 )
 {
-	recipient16	=	_addr16;
+	toXBeeAddress16( _addr16 );
 }
+/**	DEPRECATED **/
+uint16_t Message::getRecipient16()
+{
+	return recipient16;
+}
+
+
 /** Set the recipient for the message using a Node pointer **/
 void Message::setRecipient( Node * node )
 {
@@ -69,6 +101,56 @@ void Message::setRecipient( Node * node )
 		recipient64	=	node->getAddress64();
 	}
 }
+
+
+
+/** Store the 64 bit address of the sender of the message **/
+/** Return the transmitting XBee address **/
+XBeeAddress64 Message::fromXBeeAddress64( XBeeAddress64 _addr64 )
+{
+	return sender64 = _addr64;
+}
+/** Return the transmitting XBee address **/
+XBeeAddress64 Message::fromXBeeAddress64( )
+{
+	return sender64;
+}
+/**	DEPRECATED **/
+void Message::setSender64( XBeeAddress64 _addr64 )
+{
+	sender64	=	_addr64;
+}
+/**	DEPRECATED **/
+XBeeAddress64 Message::getSender64( )
+{
+	return sender64;
+}
+
+/** Returns the 16 bit address of the sender **/
+/**	Store the 16-bit address of the sender	**/
+uint16_t Message::fromXBeeAddress16( uint16_t _addr16 )
+{
+	return sender16 = _addr16;
+}
+/**	Store the 16-bit address of the sender	**/
+uint16_t Message::fromXBeeAddress16()
+{
+	return sender16;
+}
+/** DEPRECATED **/
+uint16_t Message::getSender16()
+{
+	return fromXBeeAddress16();
+}
+/** DEPRECATED **/
+void Message::setSender16( uint16_t _addr16 )
+{
+	sender16	=	_addr16;
+}
+
+
+
+
 /*
 void Message::setRecipient( uint8_t _id )
 {
@@ -102,21 +184,12 @@ void Message::setFunction( uint16_t _func )
 	payload[FUNCTION_MSB]	=	( _func >> 8 ) 		& 0xFF;
 	payload[FUNCTION_LSB]	=	_func 				& 0xFF;
 }
-/** Store the 64 bit address of the sender of the message **/
-void Message::setSender64( XBeeAddress64 _addr64 )
-{
-	sender64	=	_addr64;
-}
-/**	Store the 16-bit address of the sender	**/
-void Message::setSender16( uint16_t _addr16 )
-{
-	sender16	=	_addr16;
-}
+
 /**	Set both the 16-bit and 64-bit address of the sender in one go	**/
 void Message::setSender( uint16_t _addr16, XBeeAddress64 _addr64 )
 {
-	sender16	=	_addr16;
-	sender64	=	_addr64;
+	toXBeeAddress16( _addr16 );
+	toXBeeAddress64( _addr64 );
 }
 
 /** Sets the scope for this message as a string (this is hashed into an int) **/
@@ -321,43 +394,16 @@ String Message::getStringArgument( )
 /** Return the functionID of the message **/
 uint16_t Message::getFunction()
 {
-	uint16_t funcMSB	=	payload[ FUNCTION_MSB ] << 8;
+	uint16_t funcMSB		=	payload[ FUNCTION_MSB ] << 8;
 	uint16_t funcLSB		=	payload[ FUNCTION_LSB ];
 	return funcMSB + funcLSB;
 }
-/** return the 16 bit address of the recipient **/
-uint16_t Message::getRecipient16()
-{
-	return recipient16;
-}
-/** Returns the 16 bit address of the sender **/
-uint16_t Message::getSender16()
-{
-	return sender16;
-}
+
+
 /** Returns the scope of the message **/
 uint16_t Message::getScope()
 {
 	uint16_t scopeMSB	=	payload[ SCOPE_MSB ] << 8;
 	uint16_t scopeLSB	=	payload[ SCOPE_LSB ];
 	return scopeMSB + scopeLSB;
-}
-
-/*
-__  _____            _      _    _                 __ _ _  
-\ \/ / _ ) ___ ___  /_\  __| |__| |_ _ ___ ______ / /| | | 
- >  <| _ \/ -_) -_)/ _ \/ _` / _` | '_/ -_|_-<_-</ _ \_  _|
-/_/\_\___/\___\___/_/ \_\__,_\__,_|_| \___/__/__/\___/ |_| 
-
-*/
-
-/** Return the receiving XBee address **/
-XBeeAddress64 Message::getRecipient64()
-{
-	return recipient64;
-}
-/** Return the transmitting XBee address **/
-XBeeAddress64 Message::getSender64( )
-{
-	return sender64;
 }

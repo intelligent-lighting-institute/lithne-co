@@ -62,21 +62,71 @@ __   _____ ___ ___
 */
 
 /** Set the identifier for the node **/
-void Node::setID( uint8_t _id )
+uint8_t Node::setID( uint8_t _id )
 {	
-	nodeId	=	_id;
+	return nodeId	=	_id;
 }
 
 /** Set the 64-bit address for this node **/
+XBeeAddress64 Node::setXBeeAddress64( XBeeAddress64 _addr64 )
+{
+	return nodeAddress64		=	_addr64;
+}
+XBeeAddress64 Node::getXBeeAddress64()
+{
+	return nodeAddress64;
+}
+/** Returns the most significant byte of the node address **/
+uint32_t Node::getMSB()
+{
+	return nodeAddress64.getMsb();
+}
+/** Returns the least significant byte of the node address **/
+uint32_t Node::getLSB()
+{
+	return nodeAddress64.getLsb();
+}
+/** DEPRECATED **/
 void Node::setAddress64( XBeeAddress64 _addr64 )
 {
-	nodeAddress64		=	_addr64;
+	setAddress64( _addr64 );
+}
+/** DEPRECATED **/
+XBeeAddress64 Node::getAddress64()
+{
+	return nodeAddress64;
 }
 
+
 /** Set the 16-bit address for this node **/
-void Node::setAddress16( uint16_t _add16 )
+uint16_t Node::setXBeeAddress16( uint16_t _addr16 )
 {
-	nodeAddress16	=	_add16;
+	return nodeAddress16	=	_addr16;
+}
+/**	Returns the 16-bit address of the node	**/
+uint16_t Node::getXBeeAddress16()
+{
+	/*	If the least significant byte is 0, this is the broadcast node.
+		Then we don't return the stored address, but the UNKNOWN_ADD16 */
+	if( getLSB() != 0xffff )
+	{
+		return	nodeAddress16;
+	}
+	else
+	{
+		return UNKNOWN_ADD16;
+	}
+}
+/** DEPRECATED **/
+void Node::setAddress16( uint16_t _addr16 )
+{
+	setXBeeAddress16( _addr16 );
+}
+
+/** DEPRECATED **/
+uint16_t Node::getAddress16()
+{
+	return getXBeeAddress16();
 }
 
 /** Add a new DB Measurement **/
@@ -143,7 +193,7 @@ bool Node::isNewMeasurement()
 /**	Check if the current 16-bit address is known.
 	if the add 16 of the node is equal to 
 	the UNKNOWN_ADD16. If so, the address has not been set yet */
-bool Node::hasAddress16()
+bool Node::hasXBeeAddress16()
 {
 	if( nodeAddress16 == UNKNOWN_ADD16 )
 	{
@@ -171,45 +221,8 @@ uint8_t Node::getID()
 /** Returns the latste DB measurement of the node (approximation of ditance) **/
 uint16_t Node::getDB()
 {
+	closeDBRequest();
 	return db[0];
 }
 
-/**	Returns the 16-bit address of the node	**/
-uint16_t Node::getAddress16()
-{
-	/*	If the least significant byte is 0, this is the broadcast node.
-		Then we don't return the stored address, but the UNKNOWN_ADD16 */
-	if( getLSB() != 0xffff )
-	{
-		return	nodeAddress16;
-	}
-	else
-	{
-		return UNKNOWN_ADD16;
-	}
-}
-
-/** Returns the most significant byte of the node address **/
-uint32_t Node::getMSB()
-{
-	return nodeAddress64.getMsb();
-}
-/** Returns the least significant byte of the node address **/
-uint32_t Node::getLSB()
-{
-	return nodeAddress64.getLsb();
-}
-
-/*
-__  _____            _      _    _                 __ _ _  
-\ \/ / _ ) ___ ___  /_\  __| |__| |_ _ ___ ______ / /| | | 
- >  <| _ \/ -_) -_)/ _ \/ _` / _` | '_/ -_|_-<_-</ _ \_  _|
-/_/\_\___/\___\___/_/ \_\__,_\__,_|_| \___/__/__/\___/ |_| 
-
-*/
-
-XBeeAddress64 Node::getAddress64()
-{
-	return nodeAddress64;
-}
 
