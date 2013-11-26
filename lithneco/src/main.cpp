@@ -110,20 +110,21 @@ int main(void)
 	Lithne.setSerial(serialCo2Xbee);
 
 	while (true) {
-		if(main_cdc_is_open(1)){
+		if(main_cdc_is_open(1))
+		{
 			// XBEE is directly linked to USB. Skip Lithne forwarding/programming
 			continue;
 		}
 		
 		if (Lithne.available() )
-		{
+		{	
 			// Only process messages inside the programming scope
 			if ( Lithne.getScope() == lithneProgrammingScope )
 			{
 				lithneProgrammer.updateRemoteAddress();
 				// The programming function receives all data packets containing the program to be written
 				if ( Lithne.getFunction() == fProgramming )
-				{
+				{	
 					lithneProgrammer.processPacket();
 				}
 				// Check-in Function
@@ -187,7 +188,7 @@ int main(void)
 				byte_to_pass_on = serialCo2MainXbee.read();
 				Lithne.sendBytePublic(byte_to_pass_on, true);
 			}
-		}		
+		}
 		
 		lithneProgrammer.preventHangup();
 	}

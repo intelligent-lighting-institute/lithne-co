@@ -89,7 +89,7 @@ uint32_t Node::getLSB()
 /** DEPRECATED **/
 void Node::setAddress64( XBeeAddress64 _addr64 )
 {
-	setAddress64( _addr64 );
+	setXBeeAddress64( _addr64 );
 }
 /** DEPRECATED **/
 XBeeAddress64 Node::getAddress64()

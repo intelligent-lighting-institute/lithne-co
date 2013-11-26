@@ -38,13 +38,16 @@ enum LithneProgrammer_function_numbers{
 	fFileName,
 	fRequestNextPacket,
 	fUploadCompleted,
-	fCodeProgrammed,	
+	fCodeProgrammed,
+//	fReturnNodeName,
+//	fReturnLastUpload,
+//	fReturnFileName,
 };
 
 #define REMOTE 0                //  Use node at ID 0 as remote
 #define PROGRAM_TIMEOUT 5000u     // Value determines the number of millis() after which the programming times out (no packs received)
 static const uint16_t lithneProgrammingScope = 1737;
-
+static const uint16_t lithneProgrammingReturnScope = 2069;
 
 class LithneProgrammer{
 	public:

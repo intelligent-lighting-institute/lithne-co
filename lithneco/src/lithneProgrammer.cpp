@@ -30,12 +30,23 @@ void LithneProgrammer::init(USART_t * usart, HardwareSerial * serial){
 	progSerial = serial;
 	progUsart = usart;
 	Lithne.addNode( REMOTE, XBeeAddress64(0x00,0x0000FFFF) );         // Broadcast by default
+	debugMessage("Programmer Init Complete");
+	
 }
 
 void LithneProgrammer::updateRemoteAddress(){
+	
+	
+	/*
+	debugMessage("UpdateRemote() Remote Address to (%lX, %lX), original was (%lX, %lX)", \
+	Lithne.getSender64().getMsb(), \
+	Lithne.getSender64().getLsb(), \
+	Lithne.getNodeByID( REMOTE )->getAddress64().getMsb(), \
+	Lithne.getNodeByID( REMOTE )->getAddress64().getLsb() ); */
+	
 	// Check if the remote address is different from the one we have stored
-	if ( Lithne.getNodeByID( REMOTE )->getAddress64().getMsb() != Lithne.getSender64().getMsb() ||
-	Lithne.getNodeByID( REMOTE )->getAddress64().getLsb() != Lithne.getSender64().getLsb() )
+	if (	Lithne.getNodeByID( REMOTE )->getAddress64().getMsb() != Lithne.getSender64().getMsb() ||
+			Lithne.getNodeByID( REMOTE )->getAddress64().getLsb() != Lithne.getSender64().getLsb() )
 	{
 		// If so, we set the new 64 bit address.
 		Lithne.getNodeByID( REMOTE )->setAddress64( Lithne.getSender64() );
@@ -98,7 +109,7 @@ void LithneProgrammer::processCheckin(){
 	{
 		// Send check-in message
 		Lithne.setRecipient( REMOTE );
-		Lithne.setScope( lithneProgrammingScope );
+		Lithne.setScope( lithneProgrammingReturnScope );
 		Lithne.setFunction( fCheckingIn );
 		Lithne.send();
 	}
@@ -107,6 +118,7 @@ void LithneProgrammer::processCheckin(){
 void LithneProgrammer::processNodeName(){
     if ( Lithne.getIncomingMessage()->getNumberOfBytes() > 0 )
 	{
+		debugMessage("Setting NodeName");
 		nodeInfo.setNodeName(Lithne.getStringArgument());
 	}
 	nodeInfo.sendNodeName();
@@ -181,13 +193,13 @@ bool LithneProgrammer::program(void)
 	else{
 		// let the remote know that the upload is complete
 		Lithne.setRecipient( REMOTE );
-		Lithne.setScope( lithneProgrammingScope );
+		Lithne.setScope( lithneProgrammingReturnScope );
 		Lithne.setFunction( fUploadCompleted );
 		Lithne.send();
 		if(stopProgrammer()){
 			debugMessage("Exit bootloader after successful programming.");
 			Lithne.setRecipient( REMOTE );
-			Lithne.setScope( lithneProgrammingScope );
+			Lithne.setScope( lithneProgrammingReturnScope );
 			Lithne.setFunction( fCodeProgrammed );
 			Lithne.send();
 		}
@@ -441,7 +453,7 @@ void LithneProgrammer::requestNextPacket(void){
 		
 		//  update progress
 		Lithne.setRecipient( REMOTE );
-		Lithne.setScope( lithneProgrammingScope );
+		Lithne.setScope( lithneProgrammingReturnScope );
 		Lithne.setFunction( fRequestNextPacket );
 		Lithne.addArgument( packetsReceived );
 		Lithne.send();

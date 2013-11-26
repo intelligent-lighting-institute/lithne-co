@@ -157,13 +157,14 @@ void LithneClass::setFunction( uint16_t _function )
 	outgoingMessage.setFunction( _function );
 }
 
-/** Set the address of the receiving XBee by using the ID (not the same as array position in the Nodes array!) 
-	The ID is supplied in the addNode function
-**/
 void LithneClass::setRecipient( uint8_t _id )
 {
 	toID( _id );
 }
+
+/** Set the address of the receiving XBee by using the ID (not the same as array position in the Nodes array!) 
+	The ID is supplied in the addNode function
+**/
 void LithneClass::toID( uint8_t _id )
 {
 	/*	Retrieve the node the user refers to	*/
@@ -234,7 +235,7 @@ void LithneClass::setRecipient16( uint16_t _add16 )
 	toXBeeAddress( _add16 );
 }
 
-/** Add an argument to the outgoing message **/
+/** Add an argument to the outgoing message; lithne arguments are unsigned ints (only positive whole numbers) **/
 void LithneClass::addArgument( uint16_t _arg )
 {
 	outgoingMessage.addArgument( _arg );
@@ -262,7 +263,7 @@ void LithneClass::println( uint8_t _id, String _stringArg )
 		println(receivingNode, _stringArg);
 	}
 }
-/** Set the address of the receiving XBee by using the full 64 bit address **/
+/** Send a string and set the address of the receiving XBee by using the full 64 bit address **/
 void LithneClass::println( XBeeAddress64 _add64, String _stringArg )
 {
 	/*	Retrieve the node the user refers to	*/
@@ -326,8 +327,9 @@ void LithneClass::send( uint8_t _id, uint8_t _function )
 	Transmits the message in the argument and consequently read the	response from the XBee.	
 	Message * message: Message to be transmitted.
 **/
-void LithneClass::sendMessage( Message * message )
+bool LithneClass::sendMessage( Message * message )
 {
+	bool willSend = true;
 	/* Place the total payload in the local payload array
 	uint8_t payload[message->getPayloadSize()];
 	for (int i = 0; i < sizeof(payload); i++)
@@ -345,38 +347,46 @@ void LithneClass::sendMessage( Message * message )
 	*/
 	zbTx = ZBTxRequest( addr64, addr16, 0, 0, message->getPayload(), message->getPayloadSize(), 0x01 );
 	// zbTx = ZBTxRequest( addr64, addr16, 0, 0, payload, sizeof(payload), 0x01 );
-	
-	bool sentTooFast = false;
+
+	// Send exceptions in the broadcasting mode
 	if ( addr64.getMsb() == 0x0 && 
 		 addr64.getLsb() == 0xFFFF )
 	{
 		zbTx.setFrameId(NO_RESPONSE_FRAME_ID); //disable TX_STATUS_RESPONSE for Broadcast which speeds up the transmission rate
+		// Check for sending speed
 		if (abs( millis() - _lastSend) < SEND_DELAY_BROADCAST)
 		{
-			sentTooFast = true;
+			willSend = false;
+		}
+		// No broadcasting is allowed in the programming scope
+		if( message->getScope() == Lithne.PROGRAMMING_SCOPE )
+		{
+			willSend = false;	
 		}
 	}
+	// In case of non-broadcast messages
 	else
 	{
+		// Check for sending speed
 		if (abs( millis() - _lastSend) < SEND_DELAY_UNICAST)
 		{
-			sentTooFast = true;
+			willSend = false;
 		}
 	}
 	/* We check if the user is not transmitting too fast and flooding the network */
-	if ( !sentTooFast )
+	if ( willSend )
 	{
 		/* The complete ZBTxRequest is transmitted */
 		_lastSend = millis();
+		/* Store the addresses we transmit to */	
+		last16B	=	addr16;
+		last64B	=	addr64;
+
 		xbee.send(zbTx);
+
+		/* After transmitting, read any possible status response */
+		readXbee();
 	}
-	
-	/* Store the addresses we transmit to */	
-	last16B	=	addr16;
-	last64B	=	addr64;
-	
-	/* After transmitting, read any possible status response */
-	readXbee();
 }
 
 /** Transmit a DB request (RSSI, signal strength) by using the node identifier **/
@@ -547,8 +557,8 @@ void LithneClass::sendDBRequest( XBeeAddress64 _addr64, uint16_t _addr16 )
     xbee.send( db );
 }
 
-/**	Collect information of the XBee connected to the local node.
-	However, this information is only written when the XBee is read.**/
+/**	Collect information of the XBee connected to this board.
+	To get this information use the separate commands such as getMyID() **/
 void LithneClass::getMyInfo()
 {
 	sendATCommand( atSH );
@@ -591,11 +601,11 @@ void LithneClass::addScope( String _group )
 	addScope( hash(_group) );
 }
 
-/**	Broadcasts a hello world command and either requests a reply.
+/*	Broadcasts a hello world command and either requests a reply.
 	If a reply is requested, a node will reply with hello world,
 	but should NOT ask for a reply (otherwise you end up in an infinite
 	loop).
-**/
+
 void LithneClass::helloWorld( XBeeAddress64 _addr64, bool askReply )
 {
 	setRecipient( _addr64 );
@@ -603,7 +613,7 @@ void LithneClass::helloWorld( XBeeAddress64 _addr64, bool askReply )
 	addArgument(  getMyAddress16() );
 	addArgument(  askReply );
 	send();
-}
+} */
 
 /*
  ___  ___   ___  _    ___   _   _  _ 
@@ -613,7 +623,9 @@ void LithneClass::helloWorld( XBeeAddress64 _addr64, bool askReply )
 
 */
 
-/** Check whether new data is available. If so, raise newMessage flag **/
+/** Check whether a new Lithne Message is available; onece this is the case; make sure to process it, as the next call to this function will return false
+	unless there is another new message
+ **/
 bool LithneClass::available()
 {
 	// We check if the newMessage flag has been set. We let the user process that.
@@ -639,6 +651,8 @@ bool LithneClass::available()
 
 }
 
+/** Check whether new information is available as a result of the getMyInfo() function or one of its subfunctions.
+**/
 bool LithneClass::myInfoAvailable()
 {
 	// We check if the newATMessage flag has been set. We let the user process that.
@@ -663,7 +677,8 @@ bool LithneClass::myInfoAvailable()
 	}
 
 }
-
+/** Check whether new DB info is available (signalstrength). Use related functions to obtain the information.
+**/
 bool LithneClass::dbAvailable()
 {
 	// We check if the newRemoteATMessage flag has been set. We let the user process that.
@@ -885,7 +900,8 @@ bool LithneClass::equals( XBeeAddress64 _addr1, XBeeAddress64 _addr2 )
 
 	return _equal;
 }
-
+/** Check whether the incomingMessage came from a particular node ID.
+**/
 bool LithneClass::isFromNodeID( uint8_t _id )
 {
 	bool _equal	=	false;
@@ -905,18 +921,18 @@ bool LithneClass::isFromNodeID( uint8_t _id )
                                 
 */
 
-/** Returns the pin number of the digital out pins. 
+/* Returns the pin number of the digital out pins. 
 	This makes it easy to refer	to the digital output 
-	pins as 0-6, as	they are mapped on the Lithne node **/
+	pins as 0-6, as	they are mapped on the Lithne node */
 uint8_t	LithneClass::digitalPin( uint8_t position )
 {
 	position = constrain( position, 0, 5 );
 	return DIGITAL[position];
 }
 
-/** Returns the pin number of the pwm (DAC) out pins.
+/* Returns the pin number of the pwm (DAC) out pins.
 	This makes it easy to refer	to the digital output 
-	pins as 0-6, as	they are mapped on the Lithne node **/
+	pins as 0-6, as	they are mapped on the Lithne node */
 uint8_t	LithneClass::pwmPin( uint8_t position )
 {
 	position = constrain( position, 0, 5 );
@@ -1167,7 +1183,7 @@ uint16_t LithneClass::getSender16()
 	return incomingMessage.getSender16();
 }
 
-/**	Sends an ATCommand and returns the response as a 32-bit integer.
+/**	EXPERT FUNCTION: Sends an ATCommand and returns the response as a 32-bit integer.
 	If you specify a value of waitForResponse, the program will wait
 	for the amount of ms specified by waitForResponse and immediately
 	process the AT response. If you don't specify a value or specify 0
@@ -1577,8 +1593,7 @@ if (xbee.getResponse().isAvailable()) //Returns a reference to the current respo
 	      	if ( rATcmd.getCommand()[0]	==	atDB[0] &&
 	      		 rATcmd.getCommand()[1]	==	atDB[1] )
 	      	{
-	      		newRemoteATMessage = true;
-
+				newRemoteATMessage = true;
 		      	XBeeAddress64 rAddress64	=	rATcmd.getRemoteAddress64();
 		      	uint16_t rAddress16			=	rATcmd.getRemoteAddress16();
 				

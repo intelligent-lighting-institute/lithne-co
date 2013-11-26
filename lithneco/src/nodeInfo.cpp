@@ -87,7 +87,7 @@ void NodeInfo::sendNodeName()
 		i++;
 	}
 	Lithne.setRecipient( REMOTE );
-	Lithne.setScope( lithneProgrammingScope );
+	Lithne.setScope( lithneProgrammingReturnScope );
 	Lithne.setFunction( fNodeName );
 	Lithne.send();
 }
@@ -103,7 +103,7 @@ void NodeInfo::sendFileName()
 		i++;
 	}
 	Lithne.setRecipient( REMOTE );
-	Lithne.setScope( lithneProgrammingScope );
+	Lithne.setScope( lithneProgrammingReturnScope );
 	Lithne.setFunction( fFileName );
 	Lithne.send();
 }
@@ -119,7 +119,7 @@ void NodeInfo::sendLastUpload()
 		i++;
 	}
 	Lithne.setRecipient( REMOTE );
-	Lithne.setScope( lithneProgrammingScope );
+	Lithne.setScope( lithneProgrammingReturnScope );
 	Lithne.setFunction( fLastUpload );
 	Lithne.send();
 }

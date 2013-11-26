@@ -61,6 +61,9 @@ class LithneClass
 	
 	const static uint16_t	SEND_DELAY_BROADCAST=	1200;
 	const static uint16_t	SEND_DELAY_UNICAST	=	30;
+
+	const static uint16_t 	PROGRAMMING_SCOPE 	= 	1737;
+	const static uint16_t 	NO_SCOPE 			= 	1;
 	
 	/*const static uint8_t	F_HELLOWORLD		=	201;	//Indicate your presence to the world
 	const static uint8_t	F_METAINFO			=	202;	//Provide meta information, such as category and type 
@@ -93,7 +96,7 @@ class LithneClass
 	void send( );
 	void send( XBeeAddress64 recipient, uint8_t function );
 	void send( uint8_t id, uint8_t function );
-	void sendMessage( Message * _mes );
+	bool sendMessage( Message * _mes );
 	
 	void println( String _stringArg );
 	void println( uint8_t _recipId, String _stringArg );
@@ -110,7 +113,7 @@ class LithneClass
 	void setScope( String _scope );
 	void addScope( uint16_t _scope );
 	void addScope( String _group );
-	void helloWorld( XBeeAddress64 _addr64 = XBeeAddress64(0x0, 0xFFFF), bool askReply = false );
+	// void helloWorld( XBeeAddress64 _addr64 = XBeeAddress64(0x0, 0xFFFF), bool askReply = false );
 	
 	/*	Functions that return bits (booleans) 	*/
 	bool available();

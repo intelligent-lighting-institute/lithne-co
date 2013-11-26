@@ -188,8 +188,8 @@ void Message::setFunction( uint16_t _func )
 /**	Set both the 16-bit and 64-bit address of the sender in one go	**/
 void Message::setSender( uint16_t _addr16, XBeeAddress64 _addr64 )
 {
-	toXBeeAddress16( _addr16 );
-	toXBeeAddress64( _addr64 );
+	fromXBeeAddress16( _addr16 );
+	fromXBeeAddress64( _addr64 );
 }
 
 /** Sets the scope for this message as a string (this is hashed into an int) **/
