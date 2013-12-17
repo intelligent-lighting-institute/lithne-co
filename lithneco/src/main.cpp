@@ -168,8 +168,10 @@ int main(void)
 				serialCo2MainXbee.flush();
 			}
 		}
-		// In case Lithne Available returns 0, but we still receive a packet from the xbee (e.g. AT command or Remote At command), we also forward it!
-		else if (Lithne.myInfoAvailable() || Lithne.dbAvailable())
+		// In case Lithne Available returns 0, but we still receive a packet from the xbee 
+		// (e.g. AT command or Remote At command, TX status response), we also forward it!
+		// This does not read the xbee, so make sure to call lithne available first!!
+		else if ( Lithne.xbeePacketAvailable() )
 		{
 			for(int i=0; i < Lithne.getXBeePacketSize(); i++)  //   send data in XBee packet straight through to the main processor
 			{

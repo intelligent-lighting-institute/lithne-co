@@ -119,6 +119,7 @@ class LithneClass
 	bool available();
 	bool dbAvailable();
 	bool myInfoAvailable();
+	bool xbeePacketAvailable();
 
 	bool addNode( uint8_t _id, XBeeAddress64 _addr64 = XBeeAddress64(0x0, 0xFFFE), uint16_t _addr16 = UNKNOWN_16B );
 	bool nodeKnown( uint8_t _id );
@@ -174,6 +175,8 @@ class LithneClass
 	
 	Message * getIncomingMessage( );
 	Message * getOutgoingMessage( );
+
+	bool messageDelivered( ); // Returns true if the sent message was delivered; false as long as it is not.
 	
 	/*	Node pointer retrieval	*/
 	Node * getNode( uint8_t _position );
@@ -182,6 +185,8 @@ class LithneClass
 	Node * getNodeByID( uint8_t _nodeId );
   private:  	
   	//void setRecipient( Node * receivingNode );
+
+  	void setMessageDelivered( bool s );	
 	
   	/* These functions are only local to retrieve the position in the array */
   	uint16_t getNodeArrayPosition( uint8_t _nodeId );

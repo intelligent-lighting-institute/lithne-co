@@ -27,7 +27,7 @@ addArgument	KEYWORD2
 setStringArgument	KEYWORD2
 send		KEYWORD2
 sendMessage	KEYWORD2
-
+messageDelivered	KEYWORD2
 sendDBRequest	KEYWORD2
 sendDBRequest16	KEYWORD2
 

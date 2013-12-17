@@ -37,6 +37,7 @@
 bool newMessage			=	false;
 bool newATMessage		=	false;
 bool newRemoteATMessage	=	false;
+bool newXBeePacket   	=	false;
 
 /* uint8_t */
 uint8_t DIGITAL[6]	=	{2, 4, 7, 8, 12, 13};	//defines the digital pins
@@ -68,6 +69,8 @@ Node * nodes[MAX_NODES]			=	{0};
 	
 Message LithneClass::incomingMessage;
 Message LithneClass::outgoingMessage;
+
+bool _outgoingMessageDelivered;
 
 XBee LithneClass::xbee;
 ZBRxResponse LithneClass::rx;
@@ -307,6 +310,8 @@ void LithneClass::send( )
 		our next message is always received by any other node (unless we specify
 		a scope again)	*/
 	outgoingMessage.setScope( NO_SCOPE );
+	// Make sure the flag for message delivery is down
+	setMessageDelivered( false ); 
 }
 /**	Transmit outgoing message with the specified recipient by 64 bit address and function **/
 void LithneClass::send( XBeeAddress64 recipient, uint8_t function )
@@ -345,6 +350,7 @@ bool LithneClass::sendMessage( Message * message )
 		16-bit address is NOT known, the ZBTxRequest will automatically
 		use the 64-bit address.
 	*/
+	// zbTx = ZBTxRequest( addr64,  message->getPayload(), message->getPayloadSize() );
 	zbTx = ZBTxRequest( addr64, addr16, 0, 0, message->getPayload(), message->getPayloadSize(), 0x01 );
 	// zbTx = ZBTxRequest( addr64, addr16, 0, 0, payload, sizeof(payload), 0x01 );
 
@@ -354,7 +360,7 @@ bool LithneClass::sendMessage( Message * message )
 	{
 		zbTx.setFrameId(NO_RESPONSE_FRAME_ID); //disable TX_STATUS_RESPONSE for Broadcast which speeds up the transmission rate
 		// Check for sending speed
-		if (abs( millis() - _lastSend) < SEND_DELAY_BROADCAST)
+		if ( millis() - _lastSend < SEND_DELAY_BROADCAST)
 		{
 			willSend = false;
 		}
@@ -368,7 +374,7 @@ bool LithneClass::sendMessage( Message * message )
 	else
 	{
 		// Check for sending speed
-		if (abs( millis() - _lastSend) < SEND_DELAY_UNICAST)
+		if ( millis() - _lastSend < SEND_DELAY_UNICAST)
 		{
 			willSend = false;
 		}
@@ -702,6 +708,15 @@ bool LithneClass::dbAvailable()
 		}
 	}
 
+}
+
+// This is an umbrella function that returns true if a packet was available since the last time the readXBee function was called.
+// It is set to false at each call to readXBee, is set to true when a packet is received, and remains so until a new call to the readXBee is made.
+// It only makes sense to call this function after a call to readXBee (e.g. from Lithne.available()), but BEFORE the next call to the function...
+bool LithneClass::xbeePacketAvailable()
+{
+	// We check if the XBeePacketAvailable flag has been set. This does not actually do anything, other than tell the user that 
+	return newXBeePacket;
 }
 
 /** Add a new node to the memory, giving it a specific ID (0-255)
@@ -1425,6 +1440,17 @@ uint16_t LithneClass::getNodeArrayPosition( XBeeAddress64 _addr64 )
 	return UNKNOWN_NODE_ID;
 }
 
+
+void LithneClass::setMessageDelivered( bool s )
+{
+	_outgoingMessageDelivered = s;
+}
+
+bool LithneClass::messageDelivered( )
+{
+	return _outgoingMessageDelivered;
+}
+
 /** This function takes care of all processing when a message is received.
 	It is called after Lithne.available();
 	This section is based on examples in the XBee library by Andrew Rapp**/
@@ -1435,10 +1461,14 @@ void LithneClass::readXbee()
 /* Reads all available serial bytes until a packet is parsed, an error occurs, or the buffer is empty. */
 xbee.readPacket();  
 
+if( newXBeePacket ) { newXBeePacket = false; } // Set this flag to false; only raise it if we receive a message
+
 if (xbee.getResponse().isAvailable()) //Returns a reference to the current response Note: once readPacket is called again this response will be overwritten!
 {
+	newXBeePacket = true;
+
 	int responseType	=	xbee.getResponse().getApiId();
-	
+
   	if (responseType == ZB_RX_RESPONSE)
     { //Call with instance of ZBRxResponse class only if getApiId() == ZB_RX_RESPONSE to populate response.
 
@@ -1461,6 +1491,18 @@ if (xbee.getResponse().isAvailable()) //Returns a reference to the current respo
 			addr64 = XBeeAddress64(0x0, 0x0);
 		}
      	
+
+		// Serial.println("-----------");
+		
+  //   	for( uint16_t i = 0; i <rx.getDataLength(); i++ )
+  //     	{
+    		
+		// 	Serial.print( rx.getData(i) );
+		// 	Serial.print( " " );
+  //   	}
+  //   	Serial.println("");
+  //   	Serial.println("-----------");
+
 	incomingMessage.setSender( addr16, addr64 );
      	 
      	/*	The scope of the message is stored in the first two bytes
@@ -1586,7 +1628,7 @@ if (xbee.getResponse().isAvailable()) //Returns a reference to the current respo
 	/* DB MEASUREMENT RESPONSE */
 	else if( responseType == REMOTE_AT_COMMAND_RESPONSE ) 	//REMOTE_AT_COMMAND_RESPONSE
 	{	
-		/* Serial.println("Received Remote AT Command Response");*/
+		// Serial.println("Received Remote AT Command Response");
 		xbee.getResponse().getRemoteAtCommandResponse(rATcmd);
 		if (rATcmd.isOk()) 
 		{
@@ -1596,6 +1638,10 @@ if (xbee.getResponse().isAvailable()) //Returns a reference to the current respo
 				newRemoteATMessage = true;
 		      	XBeeAddress64 rAddress64	=	rATcmd.getRemoteAddress64();
 		      	uint16_t rAddress16			=	rATcmd.getRemoteAddress16();
+
+				// Serial.print("AT DB from ");
+				// Serial.print(rAddress64.getMsb(), HEX);
+				// Serial.println(rAddress64.getLsb(), HEX);
 				
 				// This is now done at the end of this section
 				//getNodeBy64( rAddress64 )->addDBMeasurement( rATcmd.getValue()[0] );
@@ -1675,6 +1721,8 @@ if (xbee.getResponse().isAvailable()) //Returns a reference to the current respo
 	 		*/
 			
 	 		uint16_t rAddress16	=	txStatus.getRemoteAddress();	//Stores the 16-bit address
+
+	 		setMessageDelivered( true );
 	 		
 	 		if( !nodeKnown16( rAddress16 ) )
 	 		{
