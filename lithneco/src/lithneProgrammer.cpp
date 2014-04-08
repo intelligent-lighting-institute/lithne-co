@@ -186,7 +186,7 @@ bool LithneProgrammer::program(void)
 	}
 		
 	// If we expect more packets to be incoming than we have received so far - request next packet
-	if (!lastPacket)
+	if (!lastPacket && programming)
 	{
 		requestNextPacket();
 	}

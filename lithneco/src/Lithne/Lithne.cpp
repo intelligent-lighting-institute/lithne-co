@@ -1706,6 +1706,8 @@ if (xbee.getResponse().isAvailable()) //Returns a reference to the current respo
 	*/
     else if (responseType == ZB_TX_STATUS_RESPONSE)
     {
+    	// Serial.println("Received ZBTxStatusResponse");
+
 	    xbee.getResponse().getZBTxStatusResponse(txStatus);
      	
      	if (txStatus.getDeliveryStatus() == SUCCESS) 

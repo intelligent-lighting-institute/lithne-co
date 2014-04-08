@@ -25,7 +25,7 @@
 /** Default Message constructor */
 Message::Message()
 {
-	payloadSize 	=	0;		//Contains the number of bytes in the payload including scope and function
+	payloadSize 	=	MSG_HEADER_SIZE;		//Contains the number of bytes in the payload including scope and function
 	sender16		=	0xFFFE;	//Contains the 16 bit address of the Sender
 	recipient16		=	0xFFFE;	//Contains the 16 bit address of the Recipient
 	sender64		=	XBeeAddress64( 0x0, 0xFFFF);	// Contains the 64 bit address of the Sender
@@ -183,6 +183,10 @@ void Message::setFunction( uint16_t _func )
 {
 	payload[FUNCTION_MSB]	=	( _func >> 8 ) 		& 0xFF;
 	payload[FUNCTION_LSB]	=	_func 				& 0xFF;
+	/*Serial.print("FUNC:");
+	Serial.print(getFunction());
+	Serial.print(" from: ");
+	Serial.println(_func);*/
 }
 
 /**	Set both the 16-bit and 64-bit address of the sender in one go	**/
